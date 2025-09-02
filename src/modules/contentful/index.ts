@@ -1,0 +1,1 @@
+export { uploadToContentful, type ContentfulUploadResult } from './client'

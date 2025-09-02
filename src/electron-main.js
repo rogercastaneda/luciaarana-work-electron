@@ -10,22 +10,37 @@ if (started) {
 const createWindow = () => {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 1200,
+    height: 800,
+    minWidth: 800,
+    minHeight: 600,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
     },
+    titleBarStyle: 'default',
+    show: false, // Don't show until ready
   });
 
-  // and load the index.html of the app.
+  // Show window when ready to prevent visual flash
+  mainWindow.once('ready-to-show', () => {
+    mainWindow.show();
+  });
+
+  // Load the renderer built by Vite
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    console.log('Loading from Vite dev server:', MAIN_WINDOW_VITE_DEV_SERVER_URL);
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
   } else {
+    console.log('Loading from file:', path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
     mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
   }
-
-  // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  
+  // Enable DevTools in development
+  // if (process.env.NODE_ENV !== 'production') {
+  //   mainWindow.webContents.openDevTools();
+  // }
 };
 
 // This method will be called when Electron has finished

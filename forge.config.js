@@ -4,16 +4,32 @@ const { FuseV1Options, FuseVersion } = require('@electron/fuses');
 module.exports = {
   packagerConfig: {
     asar: true,
+    name: 'Lucia Arana Work Management',
+    executableName: 'luciaarana-work',
+    appBundleId: 'com.luciaarana.workmanagement',
+    appCategoryType: 'public.app-category.productivity',
+    // icon: './assets/icon', // Will look for icon.icns on macOS (commented until we have an icon)
+    osxSign: false, // Set to true if you have a developer certificate
+    osxNotarize: false, // Set to true for distribution outside App Store
   },
   rebuildConfig: {},
   makers: [
     {
-      name: '@electron-forge/maker-squirrel',
-      config: {},
+      name: '@electron-forge/maker-dmg',
+      platforms: ['darwin'],
+      config: {
+        name: 'Lucia Arana Work Management',
+        // icon: './assets/icon.icns', // Commented until we have an icon
+        format: 'ULFO'
+      }
     },
     {
       name: '@electron-forge/maker-zip',
       platforms: ['darwin'],
+    },
+    {
+      name: '@electron-forge/maker-squirrel',
+      config: {},
     },
     {
       name: '@electron-forge/maker-deb',
@@ -33,7 +49,7 @@ module.exports = {
         build: [
           {
             // `entry` is just an alias for `build.lib.entry` in the corresponding file of `config`.
-            entry: 'src/main.js',
+            entry: 'src/electron-main.js',
             config: 'vite.main.config.mjs',
             target: 'main',
           },
