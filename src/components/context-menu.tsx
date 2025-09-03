@@ -25,7 +25,7 @@ interface FolderContextMenuProps {
   folderId: string
   folderName: string
   onRename: (id: string, newName: string) => boolean
-  onDelete: (id: string) => boolean
+  onDelete: (id: string) => Promise<boolean>
   canDelete?: boolean
   canRename?: boolean
 }
@@ -54,8 +54,8 @@ export function FolderContextMenu({
     }
   }
 
-  const handleDelete = () => {
-    const success = onDelete(folderId)
+  const handleDelete = async () => {
+    const success = await onDelete(folderId)
     if (success) {
       setIsDeleteOpen(false)
     }

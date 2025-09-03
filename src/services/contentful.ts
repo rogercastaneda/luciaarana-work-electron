@@ -147,3 +147,53 @@ export async function uploadToContentful(file: File, filename: string): Promise<
     )
   }
 }
+
+export async function deleteFromContentful(assetId: string): Promise<boolean> {
+  try {
+    const CONTENTFUL_ACCESS_TOKEN = import.meta.env.VITE_CONTENTFUL_ACCESS_TOKEN
+    const CONTENTFUL_SPACE_ID = import.meta.env.VITE_CONTENTFUL_SPACE_ID
+    const CONTENTFUL_ENVIRONMENT_ID = import.meta.env.VITE_CONTENTFUL_ENVIRONMENT_ID
+    
+    if (!CONTENTFUL_ACCESS_TOKEN || !CONTENTFUL_SPACE_ID || !CONTENTFUL_ENVIRONMENT_ID) {
+      console.error("Missing Contentful environment variables for deletion")
+      return false
+    }
+
+    // First, unpublish the asset
+    const unpublishRes = await fetch(
+      `https://api.contentful.com/spaces/${CONTENTFUL_SPACE_ID}/environments/${CONTENTFUL_ENVIRONMENT_ID}/assets/${assetId}/published`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${CONTENTFUL_ACCESS_TOKEN}`,
+        },
+      },
+    )
+
+    if (!unpublishRes.ok) {
+      console.warn("Failed to unpublish asset, continuing with deletion:", unpublishRes.status)
+    }
+
+    // Then delete the asset
+    const deleteRes = await fetch(
+      `https://api.contentful.com/spaces/${CONTENTFUL_SPACE_ID}/environments/${CONTENTFUL_ENVIRONMENT_ID}/assets/${assetId}`,
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${CONTENTFUL_ACCESS_TOKEN}`,
+        },
+      },
+    )
+
+    if (!deleteRes.ok) {
+      console.error("Failed to delete asset from Contentful:", deleteRes.status)
+      return false
+    }
+
+    console.log("Asset deleted successfully from Contentful:", assetId)
+    return true
+  } catch (error) {
+    console.error("Error deleting from Contentful:", error)
+    return false
+  }
+}

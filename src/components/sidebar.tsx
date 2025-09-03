@@ -35,7 +35,10 @@ export function Sidebar() {
 
   const canModifyFolder = (folder: any) => {
     const baseFolders = ["Editorial", "Beauty", "Portrait", "Fashion Campaign", "Motion", "Advertising"]
-    return !(folder.parentId === null && baseFolders.includes(folder.name))
+    // Allow modification if:
+    // 1. It's a subfolder (has parentId)
+    // 2. OR it's a root folder but NOT in the base folders list (user-created project)
+    return folder.parentId !== null || !baseFolders.includes(folder.name)
   }
 
   return (

@@ -27,8 +27,8 @@ export function useMediaStore() {
     [currentFolderId],
   )
 
-  const deleteFolder = useCallback((id: string) => {
-    return mediaStore.deleteFolder(id)
+  const deleteFolder = useCallback(async (id: string) => {
+    return await mediaStore.deleteFolder(id)
   }, [])
 
   const renameFolder = useCallback((id: string, newName: string) => {

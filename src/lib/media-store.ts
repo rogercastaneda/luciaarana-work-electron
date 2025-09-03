@@ -1,4 +1,7 @@
 import type { MediaFile, Folder, FolderTree, ImageMetadata, VideoMetadata } from "./types"
+import { deleteFolder as deleteFolderFromDB } from "@/modules/database/folders"
+import { getMediaByFolderRecursive, deleteMediaByFolder } from "@/modules/database/media"
+import { deleteFromContentful } from "@/services/contentful"
 
 // Simulamos un store local para el ejemplo
 class MediaStore {
@@ -70,7 +73,7 @@ class MediaStore {
     return root.children.map((child) => buildTree(child.id))
   }
 
-  deleteFolder(id: string): boolean {
+  async deleteFolder(id: string): Promise<boolean> {
     if (id === "root") return false
 
     const folder = this.folders.get(id)
@@ -81,23 +84,59 @@ class MediaStore {
       return false // Cannot delete base folders
     }
 
-    // Eliminar archivos de la carpeta
-    folder.files.forEach((file) => this.files.delete(file.id))
-
-    // Eliminar subcarpetas recursivamente
-    folder.children.forEach((child) => this.deleteFolder(child.id))
-
-    // Remover de la carpeta padre
-    if (folder.parentId) {
-      const parent = this.folders.get(folder.parentId)
-      if (parent) {
-        parent.children = parent.children.filter((child) => child.id !== id)
-        parent.updatedAt = new Date()
+    try {
+      // Convert string ID to number for database operations
+      const folderId = parseInt(id.replace('folder_', ''), 10)
+      if (isNaN(folderId)) {
+        console.error("Invalid folder ID format for database deletion:", id)
+        return false
       }
-    }
 
-    this.folders.delete(id)
-    return true
+      // Get all media files from this folder and subfolders before deletion
+      const mediaFiles = await getMediaByFolderRecursive(folderId)
+      
+      // Delete media files from Contentful
+      const contentfulDeletions = mediaFiles.map(async (media) => {
+        try {
+          // Extract asset ID from media URL or use the media ID if it's the asset ID
+          const assetId = media.id // Assuming media.id is the Contentful asset ID
+          await deleteFromContentful(assetId)
+        } catch (error) {
+          console.warn(`Failed to delete asset ${media.id} from Contentful:`, error)
+        }
+      })
+      
+      await Promise.allSettled(contentfulDeletions)
+      
+      // Delete media records from database
+      await deleteMediaByFolder(folderId)
+      
+      // Delete folder from database
+      await deleteFolderFromDB(folderId)
+      
+      // Update local store
+      // Eliminar archivos de la carpeta localmente
+      folder.files.forEach((file) => this.files.delete(file.id))
+
+      // Eliminar subcarpetas recursivamente localmente
+      folder.children.forEach((child) => this.deleteFolder(child.id))
+
+      // Remover de la carpeta padre
+      if (folder.parentId) {
+        const parent = this.folders.get(folder.parentId)
+        if (parent) {
+          parent.children = parent.children.filter((child) => child.id !== id)
+          parent.updatedAt = new Date()
+        }
+      }
+
+      this.folders.delete(id)
+      return true
+      
+    } catch (error) {
+      console.error("Error deleting folder:", error)
+      return false
+    }
   }
 
   renameFolder(id: string, newName: string): boolean {
