@@ -4,6 +4,7 @@ export {
   createMediaRecord, 
   getMediaByFolder, 
   updateMediaOrder, 
+  updateMediaLayout,
   deleteMediaRecord,
   getMediaWithFolder
 } from './media'

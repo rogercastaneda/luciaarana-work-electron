@@ -36,6 +36,17 @@ export const updateMediaOrder = async (params: UpdateMediaOrderParams): Promise<
   return (result as MediaRecord[])[0]
 }
 
+export const updateMediaLayout = async (id: string, layout: string): Promise<MediaRecord> => {
+  const result = await sql`
+    UPDATE media 
+    SET layout = ${layout}, updated_at = NOW()
+    WHERE id = ${id}
+    RETURNING *
+  `
+  
+  return (result as MediaRecord[])[0]
+}
+
 export const deleteMediaRecord = async (id: string): Promise<boolean> => {
   const result = await sql`
     DELETE FROM media 
