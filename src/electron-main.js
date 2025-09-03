@@ -1,6 +1,27 @@
 import { app, BrowserWindow } from 'electron';
 import path from 'node:path';
+import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
+
+// Load environment variables from .env file
+const loadEnvFile = () => {
+  try {
+    const envPath = path.join(process.cwd(), '.env');
+    if (fs.existsSync(envPath)) {
+      const envContent = fs.readFileSync(envPath, 'utf8');
+      envContent.split('\n').forEach(line => {
+        const [key, ...valueParts] = line.split('=');
+        if (key && !key.startsWith('#') && key.trim()) {
+          process.env[key.trim()] = valueParts.join('=').trim();
+        }
+      });
+    }
+  } catch (error) {
+    console.warn('Could not load .env file:', error.message);
+  }
+};
+
+loadEnvFile();
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -38,9 +59,9 @@ const createWindow = () => {
   }
   
   // Enable DevTools in development
-  // if (process.env.NODE_ENV !== 'production') {
-  //   mainWindow.webContents.openDevTools();
-  // }
+  if (process.env.NODE_ENV !== 'production') {
+    mainWindow.webContents.openDevTools();
+  }
 };
 
 // This method will be called when Electron has finished

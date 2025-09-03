@@ -10,7 +10,7 @@
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "echo \"No linting configured\"",
-    "build-vite": "cd ../luciaarana-vite && npm run build",
+    "build-vite": "electron-forge package",
     "dev": "npm run build-vite && npm start",
     "build": "npm run package",
     "make-installers": "npm run build-vite && npm run make"
