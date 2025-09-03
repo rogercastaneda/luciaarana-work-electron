@@ -5,19 +5,30 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { FolderOpen, Plus, Users } from "lucide-react"
+import { FolderOpen, Plus, Users, Trash2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ThemeProvider } from "@/components/theme-provider"
 
 export default function App() {
-  const { categoriesWithProjects, loading, createProject } = useFolders()
+  const { categoriesWithProjects, loading, createProject, deleteProject } = useFolders()
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null)
   const [selectedFolderName, setSelectedFolderName] = useState<string>("")
   const [newProjectName, setNewProjectName] = useState("")
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
 
   const handleCreateProject = async () => {
     if (newProjectName.trim() && selectedCategoryId) {
@@ -30,6 +41,17 @@ export default function App() {
   const handleFolderSelect = (folderId: number, folderName: string) => {
     setSelectedFolderId(folderId)
     setSelectedFolderName(folderName)
+  }
+
+  const handleDeleteProject = async () => {
+    if (selectedFolderId) {
+      const success = await deleteProject(selectedFolderId)
+      if (success) {
+        setSelectedFolderId(null)
+        setSelectedFolderName("")
+        setIsDeleteDialogOpen(false)
+      }
+    }
   }
 
   if (loading) {
@@ -158,6 +180,20 @@ export default function App() {
                   {selectedFolderId ? "Sube y gestiona tus archivos multimedia" : "Elige un proyecto desde el sidebar"}
                 </p>
               </div>
+              
+              {selectedFolderId && selectedFolderName && (
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsDeleteDialogOpen(true)}
+                    className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Eliminar Proyecto
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
@@ -181,6 +217,28 @@ export default function App() {
             )}
           </div>
         </div>
+
+        {/* Delete Project Confirmation Dialog */}
+        <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>¿Eliminar proyecto "{selectedFolderName}"?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta acción eliminará permanentemente el proyecto y todos sus archivos de la base de datos y Contentful. 
+                Esta acción no se puede deshacer.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDeleteProject}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Eliminar Proyecto
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </ThemeProvider>
   )

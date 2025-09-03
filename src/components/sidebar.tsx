@@ -1,13 +1,22 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Search, Settings, FolderOpen } from "lucide-react"
+import { Plus, Search, Settings, FolderOpen, Trash2, Edit2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { FolderTreeComponent } from "./folder-tree"
-import { FolderContextMenu } from "./context-menu"
 import { useMediaStore } from "@/hooks/use-media-store"
 import { cn } from "@/lib/utils"
 
@@ -17,6 +26,7 @@ export function Sidebar() {
   const [searchQuery, setSearchQuery] = useState("")
   const [newFolderName, setNewFolderName] = useState("")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [folderToDelete, setFolderToDelete] = useState<{id: string, name: string} | null>(null)
 
   const folderTree = getFolderTree()
 
@@ -39,6 +49,15 @@ export function Sidebar() {
     // 1. It's a subfolder (has parentId)
     // 2. OR it's a root folder but NOT in the base folders list (user-created project)
     return folder.parentId !== null || !baseFolders.includes(folder.name)
+  }
+
+  const handleDeleteFolder = async () => {
+    if (!folderToDelete) return
+    
+    const success = await deleteFolder(folderToDelete.id)
+    if (success) {
+      setFolderToDelete(null)
+    }
   }
 
   return (
@@ -107,14 +126,7 @@ export function Sidebar() {
         <div className="space-y-1">
           {folderTree.map((folder) => (
             <div key={folder.id} className="mb-2">
-              <FolderContextMenu
-                folderId={folder.id}
-                folderName={folder.name}
-                onRename={renameFolder}
-                onDelete={deleteFolder}
-                canRename={canModifyFolder(folder)}
-                canDelete={canModifyFolder(folder)}
-              >
+              <div className="group relative">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -126,12 +138,28 @@ export function Sidebar() {
                   onClick={() => navigateToFolder(folder.id)}
                 >
                   <FolderOpen className="h-4 w-4" />
-                  <span className="text-sm font-medium">{folder.name}</span>
+                  <span className="text-sm font-medium flex-1 truncate">{folder.name}</span>
                   {folder.fileCount > 0 && (
-                    <span className="ml-auto text-xs text-muted-foreground">{folder.fileCount}</span>
+                    <span className="text-xs text-muted-foreground">{folder.fileCount}</span>
                   )}
                 </Button>
-              </FolderContextMenu>
+                
+                {canModifyFolder(folder) && (
+                  <div className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 w-6 p-0 hover:bg-destructive/20"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setFolderToDelete({id: folder.id, name: folder.name})
+                      }}
+                    >
+                      <Trash2 className="h-3 w-3 text-destructive" />
+                    </Button>
+                  </div>
+                )}
+              </div>
 
               {/* Show subfolders if any */}
               {folder.children.length > 0 && (
@@ -142,6 +170,7 @@ export function Sidebar() {
                     onFolderSelect={navigateToFolder}
                     onRename={renameFolder}
                     onDelete={deleteFolder}
+                    onDeleteRequest={(id, name) => setFolderToDelete({id, name})}
                   />
                 </div>
               )}
@@ -149,6 +178,27 @@ export function Sidebar() {
           ))}
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!folderToDelete} onOpenChange={() => setFolderToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar proyecto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará permanentemente el proyecto "{folderToDelete?.name}" y todo su contenido de la base de datos y Contentful. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteFolder}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

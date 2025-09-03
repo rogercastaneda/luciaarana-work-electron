@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronRight, ChevronDown, Folder, FolderOpen } from "lucide-react"
+import { ChevronRight, ChevronDown, Folder, FolderOpen, Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { FolderContextMenu } from "./context-menu"
 import { cn } from "@/lib/utils"
@@ -13,6 +13,7 @@ interface FolderTreeProps {
   onFolderSelect: (folderId: string) => void
   onRename: (id: string, newName: string) => boolean // Added rename callback
   onDelete: (id: string) => Promise<boolean> // Added delete callback
+  onDeleteRequest?: (folderId: string, folderName: string) => void // Added for hover delete
   level?: number
 }
 
@@ -22,6 +23,7 @@ export function FolderTreeComponent({
   onFolderSelect,
   onRename,
   onDelete,
+  onDeleteRequest,
   level = 0,
 }: FolderTreeProps) {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(["root"]))
@@ -53,14 +55,7 @@ export function FolderTreeComponent({
 
         return (
           <div key={folder.id}>
-            <FolderContextMenu
-              folderId={folder.id}
-              folderName={folder.name}
-              onRename={onRename}
-              onDelete={onDelete}
-              canRename={canModifyFolder(folder)}
-              canDelete={canModifyFolder(folder)}
-            >
+            <div className="relative group">
               <Button
                 variant="ghost"
                 size="sm"
@@ -78,20 +73,20 @@ export function FolderTreeComponent({
                       e.stopPropagation()
                       toggleExpanded(folder.id)
                     }}
-                    className="flex items-center justify-center w-4 h-4 hover:bg-sidebar-accent rounded-sm"
+                    className="flex items-center justify-center w-4 h-4 rounded-sm hover:bg-sidebar-accent"
                   >
-                    {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                    {isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
                   </button>
                 )}
                 {!hasChildren && <div className="w-4" />}
 
                 {isSelected ? (
-                  <FolderOpen className="h-4 w-4 text-sidebar-primary-foreground" />
+                  <FolderOpen className="w-4 h-4 text-sidebar-primary-foreground" />
                 ) : (
-                  <Folder className="h-4 w-4" />
+                  <Folder className="w-4 h-4" />
                 )}
 
-                <span className="flex-1 text-left text-sm font-medium truncate">{folder.name}</span>
+                <span className="flex-1 text-sm font-medium text-left truncate">{folder.name}</span>
 
                 {folder.fileCount > 0 && (
                   <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded-full">
@@ -99,7 +94,7 @@ export function FolderTreeComponent({
                   </span>
                 )}
               </Button>
-            </FolderContextMenu>
+            </div>
 
             {isExpanded && hasChildren && (
               <FolderTreeComponent
@@ -108,6 +103,7 @@ export function FolderTreeComponent({
                 onFolderSelect={onFolderSelect}
                 onRename={onRename} // Pass callbacks to nested components
                 onDelete={onDelete}
+                onDeleteRequest={onDeleteRequest} // Pass delete request callback
                 level={level + 1}
               />
             )}
