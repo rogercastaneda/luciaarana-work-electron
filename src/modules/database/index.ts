@@ -16,6 +16,7 @@ export {
   getCategoriesWithProjects,
   getFolderById,
   getFolderBySlug,
+  updateFolder,
   deleteFolder
 } from './folders'
 

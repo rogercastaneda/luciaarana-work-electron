@@ -11,5 +11,6 @@ export {
   getProjectsForCategory,
   getCategoriesWithProjectsAction,
   getFolderAction,
+  updateProjectFolder,
   deleteProjectFolder
 } from './folders'
