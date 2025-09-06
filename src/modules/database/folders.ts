@@ -91,6 +91,19 @@ export const getFolderBySlug = async (slug: string, parentId?: number): Promise<
   return result.length > 0 ? (result[0] as FolderRecord) : null
 }
 
+export const updateFolder = async (id: number, name: string): Promise<FolderRecord | null> => {
+  const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+  
+  const result = await sql`
+    UPDATE folders 
+    SET name = ${name}, slug = ${slug}, updated_at = NOW()
+    WHERE id = ${id}
+    RETURNING *
+  `
+  
+  return result.length > 0 ? (result[0] as FolderRecord) : null
+}
+
 export const deleteFolder = async (id: number): Promise<boolean> => {
   const result = await sql`
     DELETE FROM folders WHERE id = ${id}

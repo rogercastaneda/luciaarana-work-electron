@@ -5,6 +5,7 @@ import {
   getCategoriesWithProjects,
   getFolderById,
   getFolderBySlug,
+  updateFolder,
   deleteFolder
 } from '../../modules/database'
 import type { 
@@ -58,6 +59,25 @@ export const getCategoriesWithProjectsAction = async (): Promise<CategoryWithPro
 
 export const getFolderAction = async (id: number): Promise<FolderRecord | null> => {
   return await getFolderById(id)
+}
+
+export const updateProjectFolder = async (
+  id: number,
+  name: string
+): Promise<{ success: boolean; data?: FolderRecord; error?: string }> => {
+  try {
+    const folder = await updateFolder(id, name)
+    if (folder) {
+      return { success: true, data: folder }
+    } else {
+      return { success: false, error: 'Project not found' }
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update project'
+    }
+  }
 }
 
 export const deleteProjectFolder = async (

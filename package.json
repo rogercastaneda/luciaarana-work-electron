@@ -12,6 +12,7 @@
     "lint": "echo \"No linting configured\"",
     "build-vite": "electron-forge package",
     "dev": "npm run build-vite && npm start",
+    "dev:vite": "vite --config vite.renderer.config.mjs",
     "build": "npm run package",
     "make-installers": "npm run build-vite && npm run make"
   },

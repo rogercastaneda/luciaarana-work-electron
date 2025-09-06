@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronRight, ChevronDown, Folder, FolderOpen, Trash2 } from "lucide-react"
+import { ChevronRight, ChevronDown, Folder, FolderOpen } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { FolderContextMenu } from "./context-menu"
 import { cn } from "@/lib/utils"
@@ -11,9 +11,6 @@ interface FolderTreeProps {
   folders: FolderTree[]
   currentFolderId: string
   onFolderSelect: (folderId: string) => void
-  onRename: (id: string, newName: string) => boolean // Added rename callback
-  onDelete: (id: string) => Promise<boolean> // Added delete callback
-  onDeleteRequest?: (folderId: string, folderName: string) => void // Added for hover delete
   level?: number
 }
 
@@ -21,9 +18,6 @@ export function FolderTreeComponent({
   folders,
   currentFolderId,
   onFolderSelect,
-  onRename,
-  onDelete,
-  onDeleteRequest,
   level = 0,
 }: FolderTreeProps) {
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(["root"]))
@@ -38,13 +32,6 @@ export function FolderTreeComponent({
     setExpandedFolders(newExpanded)
   }
 
-  const canModifyFolder = (folder: FolderTree) => {
-    const baseFolders = ["Editorial", "Beauty", "Portrait", "Fashion Campaign", "Motion", "Advertising"]
-    // Allow modification if:
-    // 1. It's a subfolder (has parentId)
-    // 2. OR it's a root folder but NOT in the base folders list (user-created project)
-    return folder.parentId !== null || !baseFolders.includes(folder.name)
-  }
 
   return (
     <div className="space-y-1">
@@ -101,9 +88,6 @@ export function FolderTreeComponent({
                 folders={folder.children}
                 currentFolderId={currentFolderId}
                 onFolderSelect={onFolderSelect}
-                onRename={onRename} // Pass callbacks to nested components
-                onDelete={onDelete}
-                onDeleteRequest={onDeleteRequest} // Pass delete request callback
                 level={level + 1}
               />
             )}

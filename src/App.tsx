@@ -17,18 +17,20 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { FolderOpen, Plus, Users, Trash2 } from "lucide-react"
+import { FolderOpen, Plus, Users, Trash2, Edit2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ThemeProvider } from "@/components/theme-provider"
 
 export default function App() {
-  const { categoriesWithProjects, loading, createProject, deleteProject } = useFolders()
+  const { categoriesWithProjects, loading, createProject, updateProject, deleteProject } = useFolders()
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null)
   const [selectedFolderName, setSelectedFolderName] = useState<string>("")
   const [newProjectName, setNewProjectName] = useState("")
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false)
+  const [renameProjectName, setRenameProjectName] = useState("")
 
   const handleCreateProject = async () => {
     if (newProjectName.trim() && selectedCategoryId) {
@@ -41,6 +43,17 @@ export default function App() {
   const handleFolderSelect = (folderId: number, folderName: string) => {
     setSelectedFolderId(folderId)
     setSelectedFolderName(folderName)
+  }
+
+  const handleRenameProject = async () => {
+    if (selectedFolderId && renameProjectName.trim()) {
+      const result = await updateProject(selectedFolderId, renameProjectName.trim())
+      if (result.success) {
+        setSelectedFolderName(renameProjectName.trim())
+        setIsRenameDialogOpen(false)
+        setRenameProjectName("")
+      }
+    }
   }
 
   const handleDeleteProject = async () => {
@@ -186,6 +199,17 @@ export default function App() {
                   <Button
                     variant="outline"
                     size="sm"
+                    onClick={() => {
+                      setRenameProjectName(selectedFolderName)
+                      setIsRenameDialogOpen(true)
+                    }}
+                  >
+                    <Edit2 className="h-4 w-4 mr-2" />
+                    Renombrar Proyecto
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
                     onClick={() => setIsDeleteDialogOpen(true)}
                     className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
                   >
@@ -217,6 +241,37 @@ export default function App() {
             )}
           </div>
         </div>
+
+        {/* Rename Project Dialog */}
+        <Dialog open={isRenameDialogOpen} onOpenChange={setIsRenameDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Renombrar Proyecto</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <div>
+                <Label htmlFor="rename-project-name">Nuevo nombre</Label>
+                <Input
+                  id="rename-project-name"
+                  value={renameProjectName}
+                  onChange={(e) => setRenameProjectName(e.target.value)}
+                  placeholder="Ingresa el nuevo nombre..."
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      handleRenameProject()
+                    }
+                  }}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsRenameDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleRenameProject}>Renombrar</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
 
         {/* Delete Project Confirmation Dialog */}
         <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

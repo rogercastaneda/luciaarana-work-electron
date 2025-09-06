@@ -4,6 +4,7 @@ import {
   getProjectsForCategory,
   getCategoriesWithProjectsAction,
   createProjectFolder,
+  updateProjectFolder,
   deleteProjectFolder
 } from '../lib/actions'
 import type { FolderRecord, CategoryWithProjects } from '../modules/database'
@@ -73,6 +74,24 @@ export const useFolders = () => {
     }
   }, [loadCategoriesWithProjects])
 
+  const updateProject = useCallback(async (id: number, name: string) => {
+    try {
+      const result = await updateProjectFolder(id, name)
+      
+      if (result.success) {
+        await loadCategoriesWithProjects()
+      } else {
+        setState(prev => ({ ...prev, error: result.error || 'Failed to update project' }))
+      }
+      
+      return result
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update project'
+      setState(prev => ({ ...prev, error: errorMessage }))
+      return { success: false, error: errorMessage }
+    }
+  }, [loadCategoriesWithProjects])
+
   const deleteProject = useCallback(async (id: number) => {
     try {
       const result = await deleteProjectFolder(id)
@@ -105,6 +124,7 @@ export const useFolders = () => {
   return {
     ...state,
     createProject,
+    updateProject,
     deleteProject,
     refresh
   }

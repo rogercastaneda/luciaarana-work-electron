@@ -7,6 +7,7 @@ export {
 } from './media'
 export {
   createProjectFolder,
+  updateProjectFolder,
   getCategories,
   getProjectsForCategory,
   getCategoriesWithProjectsAction,

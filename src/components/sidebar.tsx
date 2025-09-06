@@ -144,21 +144,6 @@ export function Sidebar() {
                   )}
                 </Button>
                 
-                {canModifyFolder(folder) && (
-                  <div className="absolute right-1 top-1 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-6 w-6 p-0 hover:bg-destructive/20"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setFolderToDelete({id: folder.id, name: folder.name})
-                      }}
-                    >
-                      <Trash2 className="h-3 w-3 text-destructive" />
-                    </Button>
-                  </div>
-                )}
               </div>
 
               {/* Show subfolders if any */}
@@ -168,9 +153,6 @@ export function Sidebar() {
                     folders={folder.children}
                     currentFolderId={currentFolderId}
                     onFolderSelect={navigateToFolder}
-                    onRename={renameFolder}
-                    onDelete={deleteFolder}
-                    onDeleteRequest={(id, name) => setFolderToDelete({id, name})}
                   />
                 </div>
               )}
@@ -199,6 +181,7 @@ export function Sidebar() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
     </div>
   )
 }
