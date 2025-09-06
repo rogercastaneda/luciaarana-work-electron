@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Search, Settings, FolderOpen, Trash2, Edit2 } from "lucide-react"
+import { Plus, Search, Settings, FolderOpen, Trash2, Edit2, ChevronDown, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -27,6 +27,7 @@ export function Sidebar() {
   const [newFolderName, setNewFolderName] = useState("")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [folderToDelete, setFolderToDelete] = useState<{id: string, name: string} | null>(null)
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
 
   const folderTree = getFolderTree()
 
@@ -58,6 +59,22 @@ export function Sidebar() {
     if (success) {
       setFolderToDelete(null)
     }
+  }
+
+  const toggleFolderExpansion = (folderId: string) => {
+    const newExpanded = new Set(expandedFolders)
+    if (newExpanded.has(folderId)) {
+      newExpanded.delete(folderId)
+    } else {
+      newExpanded.add(folderId)
+    }
+    setExpandedFolders(newExpanded)
+  }
+
+  const shouldFolderBeExpanded = (folder: any) => {
+    // Check if the current folder is a child of this folder
+    const currentFolderIsChild = folder.children.some((child: any) => child.id === currentFolderId)
+    return currentFolderIsChild || expandedFolders.has(folder.id)
   }
 
   return (
@@ -124,40 +141,58 @@ export function Sidebar() {
       {/* Folder Tree */}
       <div className="flex-1 overflow-y-auto p-2">
         <div className="space-y-1">
-          {folderTree.map((folder) => (
-            <div key={folder.id} className="mb-2">
-              <div className="group relative">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "w-full justify-start gap-2 h-8 px-2",
-                    "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                    currentFolderId === folder.id && "bg-sidebar-primary text-sidebar-primary-foreground",
-                  )}
-                  onClick={() => navigateToFolder(folder.id)}
-                >
-                  <FolderOpen className="h-4 w-4" />
-                  <span className="text-sm font-medium flex-1 truncate">{folder.name}</span>
-                  {folder.fileCount > 0 && (
-                    <span className="text-xs text-muted-foreground">{folder.fileCount}</span>
-                  )}
-                </Button>
-                
-              </div>
-
-              {/* Show subfolders if any */}
-              {folder.children.length > 0 && (
-                <div className="ml-4 mt-1 space-y-1">
-                  <FolderTreeComponent
-                    folders={folder.children}
-                    currentFolderId={currentFolderId}
-                    onFolderSelect={navigateToFolder}
-                  />
+          {folderTree.map((folder) => {
+            const hasMany = folder.children.length >= 5
+            const isExpanded = shouldFolderBeExpanded(folder)
+            
+            return (
+              <div key={folder.id} className="mb-2">
+                <div className="group relative">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "w-full justify-start gap-2 h-8 px-2",
+                      "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                      currentFolderId === folder.id && "bg-sidebar-primary text-sidebar-primary-foreground",
+                    )}
+                    onClick={() => navigateToFolder(folder.id)}
+                  >
+                    {hasMany && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleFolderExpansion(folder.id)
+                        }}
+                        className="flex items-center justify-center w-4 h-4 rounded-sm hover:bg-sidebar-accent"
+                      >
+                        {isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                      </button>
+                    )}
+                    {!hasMany && <div className="w-4" />}
+                    
+                    <FolderOpen className="h-4 w-4" />
+                    <span className="text-sm font-medium flex-1 truncate">{folder.name}</span>
+                    {folder.fileCount > 0 && (
+                      <span className="text-xs text-muted-foreground">{folder.fileCount}</span>
+                    )}
+                  </Button>
+                  
                 </div>
-              )}
-            </div>
-          ))}
+
+                {/* Show subfolders if any and if expanded (or if less than 5 subfolders) */}
+                {folder.children.length > 0 && (isExpanded || !hasMany) && (
+                  <div className="ml-4 mt-1 space-y-1">
+                    <FolderTreeComponent
+                      folders={folder.children}
+                      currentFolderId={currentFolderId}
+                      onFolderSelect={navigateToFolder}
+                    />
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
 

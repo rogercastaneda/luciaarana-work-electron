@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { FolderOpen, Plus, Users, Trash2, Edit2 } from "lucide-react"
+import { FolderOpen, Plus, Users, Trash2, Edit2, ChevronDown, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ThemeProvider } from "@/components/theme-provider"
 
@@ -31,6 +31,7 @@ export default function App() {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false)
   const [renameProjectName, setRenameProjectName] = useState("")
+  const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set())
 
   const handleCreateProject = async () => {
     if (newProjectName.trim() && selectedCategoryId) {
@@ -43,6 +44,22 @@ export default function App() {
   const handleFolderSelect = (folderId: number, folderName: string) => {
     setSelectedFolderId(folderId)
     setSelectedFolderName(folderName)
+  }
+
+  const toggleCategoryExpansion = (categoryId: number) => {
+    const newExpanded = new Set(expandedCategories)
+    if (newExpanded.has(categoryId)) {
+      newExpanded.delete(categoryId)
+    } else {
+      newExpanded.add(categoryId)
+    }
+    setExpandedCategories(newExpanded)
+  }
+
+  const shouldCategoryBeExpanded = (category: any) => {
+    // Check if the current selected project belongs to this category
+    const currentProjectInCategory = category.projects.some((project: any) => project.id === selectedFolderId)
+    return currentProjectInCategory || expandedCategories.has(category.id)
   }
 
   const handleRenameProject = async () => {
@@ -140,42 +157,60 @@ export default function App() {
 
           <div className="flex-1 overflow-y-auto p-2">
             <div className="space-y-2">
-              {categoriesWithProjects.map((category) => (
-                <div key={category.id} className="mb-4">
-                  <div className="flex items-center gap-2 p-2 text-sm font-medium text-muted-foreground">
-                    <Users className="h-4 w-4" />
-                    <span>{category.name}</span>
-                    <Badge variant="secondary" className="ml-auto text-xs">
-                      {category.total_media_count}
-                    </Badge>
-                  </div>
-                  
-                  <div className="ml-4 space-y-1">
-                    {category.projects.map((project) => (
-                      <Button
-                        key={project.id}
-                        variant="ghost"
-                        size="sm"
-                        className={cn(
-                          "w-full justify-start gap-2 h-8 px-2",
-                          "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                          selectedFolderId === project.id && "bg-sidebar-primary text-sidebar-primary-foreground"
-                        )}
-                        onClick={() => handleFolderSelect(project.id, project.name)}
-                      >
-                        <FolderOpen className="h-4 w-4" />
-                        <span className="text-sm">{project.name}</span>
-                      </Button>
-                    ))}
+              {categoriesWithProjects.map((category) => {
+                const hasMany = category.projects.length >= 5
+                const isExpanded = shouldCategoryBeExpanded(category)
+                
+                return (
+                  <div key={category.id} className="mb-4">
+                    <div className="flex items-center gap-2 p-2 text-sm font-medium text-muted-foreground">
+                      {hasMany && (
+                        <button
+                          onClick={() => toggleCategoryExpansion(category.id)}
+                          className="flex items-center justify-center w-4 h-4 rounded-sm hover:bg-sidebar-accent"
+                        >
+                          {isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                        </button>
+                      )}
+                      {!hasMany && <div className="w-4" />}
+                      
+                      <Users className="h-4 w-4" />
+                      <span>{category.name}</span>
+                      <Badge variant="secondary" className="ml-auto text-xs">
+                        {category.total_media_count}
+                      </Badge>
+                    </div>
                     
-                    {category.projects.length === 0 && (
-                      <p className="text-xs text-muted-foreground pl-6 py-2">
-                        No hay proyectos
-                      </p>
+                    {/* Show projects if expanded (or if less than 5 projects) */}
+                    {(isExpanded || !hasMany) && (
+                      <div className="ml-4 space-y-1">
+                        {category.projects.map((project) => (
+                          <Button
+                            key={project.id}
+                            variant="ghost"
+                            size="sm"
+                            className={cn(
+                              "w-full justify-start gap-2 h-8 px-2",
+                              "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                              selectedFolderId === project.id && "bg-sidebar-primary text-sidebar-primary-foreground"
+                            )}
+                            onClick={() => handleFolderSelect(project.id, project.name)}
+                          >
+                            <FolderOpen className="h-4 w-4" />
+                            <span className="text-sm">{project.name}</span>
+                          </Button>
+                        ))}
+                        
+                        {category.projects.length === 0 && (
+                          <p className="text-xs text-muted-foreground pl-6 py-2">
+                            No hay proyectos
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
         </div>
