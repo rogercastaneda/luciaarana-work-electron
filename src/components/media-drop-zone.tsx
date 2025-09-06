@@ -79,9 +79,25 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
 
   const processFiles = useCallback((fileList: FileList) => {
     const newPendingFiles: PendingFile[] = []
+    const rejectedFiles: Array<{name: string, size: number, reason: string}> = []
 
     Array.from(fileList).forEach((file) => {
       const id = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`
+      const fileSizeMB = file.size / (1024 * 1024)
+      
+      // Check file size limits
+      if (fileSizeMB > 50) {
+        rejectedFiles.push({
+          name: file.name,
+          size: fileSizeMB,
+          reason: `File too large (${fileSizeMB.toFixed(2)} MB). Free tier limit: 50 MB`
+        })
+        return
+      }
+      
+      if (fileSizeMB > 40) {
+        console.warn(`Large file detected: ${file.name} (${fileSizeMB.toFixed(2)} MB). This may fail if you're on Contentful free tier.`)
+      }
       
       if (file.type.startsWith("image/")) {
         const preview = URL.createObjectURL(file)
@@ -90,6 +106,12 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
         newPendingFiles.push({ file, id, type: 'video' })
       }
     })
+
+    // Show rejected files alert
+    if (rejectedFiles.length > 0) {
+      const message = rejectedFiles.map(f => `• ${f.name} (${f.size.toFixed(2)} MB)`).join('\n')
+      alert(`Some files were rejected:\n\n${message}\n\nContentful free tier has a 50 MB file size limit. Consider upgrading to a paid plan for files up to 1000 MB.`)
+    }
 
     if (newPendingFiles.length > 0) {
       setPendingFiles(newPendingFiles)
