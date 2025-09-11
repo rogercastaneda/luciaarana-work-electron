@@ -5,6 +5,9 @@ import {
   getCategoriesWithProjects,
   getFolderById,
   getFolderBySlug,
+  getFolderWithRelatedProjects,
+  getAllProjectsForSelection,
+  getProjectsGroupedByCategory,
   updateFolder,
   updateFolderHero,
   deleteFolder
@@ -13,7 +16,8 @@ import type {
   FolderRecord, 
   CategoryWithProjects, 
   CreateFolderParams,
-  UpdateFolderParams 
+  UpdateFolderParams,
+  FolderWithRelatedProjects 
 } from '../../modules/database'
 
 export const createProjectFolder = async (
@@ -117,6 +121,72 @@ export const updateProjectHeroImage = async (
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to update project hero image'
+    }
+  }
+}
+
+export const getFolderWithRelatedProjectsAction = async (
+  id: number
+): Promise<{ success: boolean; data?: FolderWithRelatedProjects; error?: string }> => {
+  try {
+    const folder = await getFolderWithRelatedProjects(id)
+    if (folder) {
+      return { success: true, data: folder }
+    } else {
+      return { success: false, error: 'Project not found' }
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get project with related projects'
+    }
+  }
+}
+
+export const getAllProjectsForSelectionAction = async (): Promise<{ success: boolean; data?: FolderRecord[]; error?: string }> => {
+  try {
+    const projects = await getAllProjectsForSelection()
+    return { success: true, data: projects }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get projects for selection'
+    }
+  }
+}
+
+export const getProjectsGroupedByCategoryAction = async () => {
+  try {
+    const groupedProjects = await getProjectsGroupedByCategory()
+    return { success: true, data: groupedProjects }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get grouped projects'
+    }
+  }
+}
+
+export const updateProjectRelatedProjects = async (
+  projectId: number,
+  relatedProject1Id: number | null,
+  relatedProject2Id: number | null
+): Promise<{ success: boolean; data?: FolderRecord; error?: string }> => {
+  try {
+    const result = await updateFolderHero({
+      id: projectId,
+      relatedProject1Id,
+      relatedProject2Id
+    })
+    if (result) {
+      return { success: true, data: result }
+    } else {
+      return { success: false, error: 'Project not found' }
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update related projects'
     }
   }
 }

@@ -16,6 +16,9 @@ export {
   getCategoriesWithProjects,
   getFolderById,
   getFolderBySlug,
+  getFolderWithRelatedProjects,
+  getAllProjectsForSelection,
+  getProjectsGroupedByCategory,
   updateFolder,
   updateFolderHero,
   deleteFolder
@@ -29,5 +32,7 @@ export type {
   CreateFolderParams,
   CreateMediaParams,
   UpdateMediaOrderParams,
-  UpdateFolderParams
+  UpdateFolderParams,
+  UpdateRelatedProjectsParams,
+  FolderWithRelatedProjects
 } from './types'

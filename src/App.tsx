@@ -1,5 +1,10 @@
 import { useState } from "react"
 import { useFolders } from "@/hooks/use-folders"
+import { 
+  getFolderWithRelatedProjectsAction, 
+  getProjectsGroupedByCategoryAction, 
+  updateProjectRelatedProjects 
+} from "@/lib/actions"
 import { MediaDropZone } from "@/components/media-drop-zone"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -22,6 +27,7 @@ import { cn } from "@/lib/utils"
 import { ThemeProvider } from "@/components/theme-provider"
 import { HeroImageUpload } from "@/components/hero-image-upload"
 import { FolderContextMenu } from "@/components/context-menu"
+import { RelatedProjectsSelector } from "@/components/related-projects-selector"
 
 export default function App() {
   const { categoriesWithProjects, loading, createProject, updateProject, updateProjectHero, deleteProject } = useFolders()
@@ -38,6 +44,8 @@ export default function App() {
   const [editHeroImageUrl, setEditHeroImageUrl] = useState<string | null>(null)
   const [isHeroUploading, setIsHeroUploading] = useState(false)
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set())
+  const [currentProjectWithRelated, setCurrentProjectWithRelated] = useState<any>(null)
+  const [groupedProjects, setGroupedProjects] = useState<any[]>([])
 
   const handleCreateProject = async () => {
     if (newProjectName.trim() && selectedCategoryId) {
@@ -48,9 +56,27 @@ export default function App() {
     }
   }
 
-  const handleFolderSelect = (folderId: number, folderName: string) => {
+  const handleFolderSelect = async (folderId: number, folderName: string) => {
     setSelectedFolderId(folderId)
     setSelectedFolderName(folderName)
+    
+    // Load project with related projects
+    try {
+      const [projectResult, groupedResult] = await Promise.all([
+        getFolderWithRelatedProjectsAction(folderId),
+        getProjectsGroupedByCategoryAction()
+      ])
+      
+      if (projectResult.success && projectResult.data) {
+        setCurrentProjectWithRelated(projectResult.data)
+      }
+      
+      if (groupedResult.success && groupedResult.data) {
+        setGroupedProjects(groupedResult.data)
+      }
+    } catch (error) {
+      console.error("Error loading project details:", error)
+    }
   }
 
   const toggleCategoryExpansion = (categoryId: number) => {
@@ -127,10 +153,29 @@ export default function App() {
       if (result.success && selectedFolderId === projectId) {
         setSelectedFolderId(null)
         setSelectedFolderName("")
+        setCurrentProjectWithRelated(null)
       }
       return result.success
     }
     return false
+  }
+
+  const handleSaveRelatedProjects = async (relatedProject1Id: number | null, relatedProject2Id: number | null) => {
+    if (selectedFolderId) {
+      try {
+        const result = await updateProjectRelatedProjects(selectedFolderId, relatedProject1Id, relatedProject2Id)
+        if (result.success) {
+          // Refresh the current project data
+          const projectResult = await getFolderWithRelatedProjectsAction(selectedFolderId)
+          if (projectResult.success && projectResult.data) {
+            setCurrentProjectWithRelated(projectResult.data)
+          }
+        }
+      } catch (error) {
+        console.error("Error saving related projects:", error)
+        throw error
+      }
+    }
   }
 
   if (loading) {
@@ -371,6 +416,17 @@ export default function App() {
                   }
                   return null
                 })()}
+                
+                {/* Related Projects Section */}
+                {currentProjectWithRelated && (
+                  <RelatedProjectsSelector
+                    currentProject={currentProjectWithRelated}
+                    relatedProject1={currentProjectWithRelated.related_project_1}
+                    relatedProject2={currentProjectWithRelated.related_project_2}
+                    groupedProjects={groupedProjects}
+                    onSave={handleSaveRelatedProjects}
+                  />
+                )}
                 
                 {/* Media Drop Zone */}
                 <div>
