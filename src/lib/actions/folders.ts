@@ -5,17 +5,25 @@ import {
   getCategoriesWithProjects,
   getFolderById,
   getFolderBySlug,
+  getFolderWithRelatedProjects,
+  getAllProjectsForSelection,
+  getProjectsGroupedByCategory,
+  updateFolder,
+  updateFolderHero,
   deleteFolder
 } from '../../modules/database'
 import type { 
   FolderRecord, 
   CategoryWithProjects, 
-  CreateFolderParams 
+  CreateFolderParams,
+  UpdateFolderParams,
+  FolderWithRelatedProjects 
 } from '../../modules/database'
 
 export const createProjectFolder = async (
   name: string, 
-  parentId: number
+  parentId: number,
+  heroImageUrl?: string | null
 ): Promise<{ success: boolean; data?: FolderRecord; error?: string }> => {
   try {
     const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
@@ -32,7 +40,8 @@ export const createProjectFolder = async (
       name,
       slug,
       parentId,
-      isParent: false
+      isParent: false,
+      heroImageUrl
     })
 
     return { success: true, data: folder }
@@ -58,6 +67,128 @@ export const getCategoriesWithProjectsAction = async (): Promise<CategoryWithPro
 
 export const getFolderAction = async (id: number): Promise<FolderRecord | null> => {
   return await getFolderById(id)
+}
+
+export const updateProjectFolder = async (
+  id: number,
+  name: string
+): Promise<{ success: boolean; data?: FolderRecord; error?: string }> => {
+  try {
+    const folder = await updateFolder(id, name)
+    if (folder) {
+      return { success: true, data: folder }
+    } else {
+      return { success: false, error: 'Project not found' }
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update project'
+    }
+  }
+}
+
+export const updateProjectFolderWithHero = async (
+  params: UpdateFolderParams
+): Promise<{ success: boolean; data?: FolderRecord; error?: string }> => {
+  try {
+    const folder = await updateFolderHero(params)
+    if (folder) {
+      return { success: true, data: folder }
+    } else {
+      return { success: false, error: 'Project not found' }
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update project'
+    }
+  }
+}
+
+export const updateProjectHeroImage = async (
+  id: number,
+  heroImageUrl: string | null
+): Promise<{ success: boolean; data?: FolderRecord; error?: string }> => {
+  try {
+    const folder = await updateFolderHero({ id, heroImageUrl })
+    if (folder) {
+      return { success: true, data: folder }
+    } else {
+      return { success: false, error: 'Project not found' }
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update project hero image'
+    }
+  }
+}
+
+export const getFolderWithRelatedProjectsAction = async (
+  id: number
+): Promise<{ success: boolean; data?: FolderWithRelatedProjects; error?: string }> => {
+  try {
+    const folder = await getFolderWithRelatedProjects(id)
+    if (folder) {
+      return { success: true, data: folder }
+    } else {
+      return { success: false, error: 'Project not found' }
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get project with related projects'
+    }
+  }
+}
+
+export const getAllProjectsForSelectionAction = async (): Promise<{ success: boolean; data?: FolderRecord[]; error?: string }> => {
+  try {
+    const projects = await getAllProjectsForSelection()
+    return { success: true, data: projects }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get projects for selection'
+    }
+  }
+}
+
+export const getProjectsGroupedByCategoryAction = async () => {
+  try {
+    const groupedProjects = await getProjectsGroupedByCategory()
+    return { success: true, data: groupedProjects }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get grouped projects'
+    }
+  }
+}
+
+export const updateProjectRelatedProjects = async (
+  projectId: number,
+  relatedProject1Id: number | null,
+  relatedProject2Id: number | null
+): Promise<{ success: boolean; data?: FolderRecord; error?: string }> => {
+  try {
+    const result = await updateFolderHero({
+      id: projectId,
+      relatedProject1Id,
+      relatedProject2Id
+    })
+    if (result) {
+      return { success: true, data: result }
+    } else {
+      return { success: false, error: 'Project not found' }
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update related projects'
+    }
+  }
 }
 
 export const deleteProjectFolder = async (

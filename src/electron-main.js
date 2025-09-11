@@ -59,9 +59,9 @@ const createWindow = () => {
   }
   
   // Enable DevTools in development
-  if (process.env.NODE_ENV !== 'production') {
-    mainWindow.webContents.openDevTools();
-  }
+  // if (process.env.NODE_ENV !== 'production') {
+  //   mainWindow.webContents.openDevTools();
+  // }
 };
 
 // This method will be called when Electron has finished

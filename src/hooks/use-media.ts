@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { 
   getMediaForFolder, 
   updateMediaOrderAction, 
+  updateMediaLayoutAction,
   deleteMediaAction 
 } from '../lib/actions'
 import type { MediaRecord } from '../modules/database'
@@ -56,6 +57,23 @@ export const useMedia = (selectedFolderId?: number) => {
     }
   }, [selectedFolderId, loadMedia])
 
+  const updateLayout = useCallback(async (id: string, layout: string) => {
+    try {
+      const result = await updateMediaLayoutAction(id, layout)
+      
+      if (result.success && selectedFolderId) {
+        await loadMedia(selectedFolderId)
+      } else if (!result.success) {
+        setState(prev => ({ ...prev, error: result.error || 'Failed to update layout' }))
+      }
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        error: error instanceof Error ? error.message : 'Failed to update layout'
+      }))
+    }
+  }, [selectedFolderId, loadMedia])
+
   const deleteMedia = useCallback(async (id: string) => {
     try {
       const result = await deleteMediaAction(id)
@@ -88,6 +106,7 @@ export const useMedia = (selectedFolderId?: number) => {
   return {
     ...state,
     updateOrder,
+    updateLayout,
     deleteMedia,
     refresh
   }

@@ -4,6 +4,7 @@ export {
   createMediaRecord, 
   getMediaByFolder, 
   updateMediaOrder, 
+  updateMediaLayout,
   deleteMediaRecord,
   getMediaWithFolder
 } from './media'
@@ -15,6 +16,11 @@ export {
   getCategoriesWithProjects,
   getFolderById,
   getFolderBySlug,
+  getFolderWithRelatedProjects,
+  getAllProjectsForSelection,
+  getProjectsGroupedByCategory,
+  updateFolder,
+  updateFolderHero,
   deleteFolder
 } from './folders'
 
@@ -25,5 +31,8 @@ export type {
   CategoryWithProjects,
   CreateFolderParams,
   CreateMediaParams,
-  UpdateMediaOrderParams
+  UpdateMediaOrderParams,
+  UpdateFolderParams,
+  UpdateRelatedProjectsParams,
+  FolderWithRelatedProjects
 } from './types'

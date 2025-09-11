@@ -1,13 +1,22 @@
 "use client"
 
 import { useState } from "react"
-import { Plus, Search, Settings, FolderOpen } from "lucide-react"
+import { Plus, Search, Settings, FolderOpen, Trash2, Edit2, ChevronDown, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle 
+} from "@/components/ui/alert-dialog"
 import { Label } from "@/components/ui/label"
 import { FolderTreeComponent } from "./folder-tree"
-import { FolderContextMenu } from "./context-menu"
 import { useMediaStore } from "@/hooks/use-media-store"
 import { cn } from "@/lib/utils"
 
@@ -17,6 +26,8 @@ export function Sidebar() {
   const [searchQuery, setSearchQuery] = useState("")
   const [newFolderName, setNewFolderName] = useState("")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [folderToDelete, setFolderToDelete] = useState<{id: string, name: string} | null>(null)
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
 
   const folderTree = getFolderTree()
 
@@ -35,7 +46,35 @@ export function Sidebar() {
 
   const canModifyFolder = (folder: any) => {
     const baseFolders = ["Editorial", "Beauty", "Portrait", "Fashion Campaign", "Motion", "Advertising"]
-    return !(folder.parentId === null && baseFolders.includes(folder.name))
+    // Allow modification if:
+    // 1. It's a subfolder (has parentId)
+    // 2. OR it's a root folder but NOT in the base folders list (user-created project)
+    return folder.parentId !== null || !baseFolders.includes(folder.name)
+  }
+
+  const handleDeleteFolder = async () => {
+    if (!folderToDelete) return
+    
+    const success = await deleteFolder(folderToDelete.id)
+    if (success) {
+      setFolderToDelete(null)
+    }
+  }
+
+  const toggleFolderExpansion = (folderId: string) => {
+    const newExpanded = new Set(expandedFolders)
+    if (newExpanded.has(folderId)) {
+      newExpanded.delete(folderId)
+    } else {
+      newExpanded.add(folderId)
+    }
+    setExpandedFolders(newExpanded)
+  }
+
+  const shouldFolderBeExpanded = (folder: any) => {
+    // Check if the current folder is a child of this folder
+    const currentFolderIsChild = folder.children.some((child: any) => child.id === currentFolderId)
+    return currentFolderIsChild || expandedFolders.has(folder.id)
   }
 
   return (
@@ -102,50 +141,82 @@ export function Sidebar() {
       {/* Folder Tree */}
       <div className="flex-1 overflow-y-auto p-2">
         <div className="space-y-1">
-          {folderTree.map((folder) => (
-            <div key={folder.id} className="mb-2">
-              <FolderContextMenu
-                folderId={folder.id}
-                folderName={folder.name}
-                onRename={renameFolder}
-                onDelete={deleteFolder}
-                canRename={canModifyFolder(folder)}
-                canDelete={canModifyFolder(folder)}
-              >
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className={cn(
-                    "w-full justify-start gap-2 h-8 px-2",
-                    "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                    currentFolderId === folder.id && "bg-sidebar-primary text-sidebar-primary-foreground",
-                  )}
-                  onClick={() => navigateToFolder(folder.id)}
-                >
-                  <FolderOpen className="h-4 w-4" />
-                  <span className="text-sm font-medium">{folder.name}</span>
-                  {folder.fileCount > 0 && (
-                    <span className="ml-auto text-xs text-muted-foreground">{folder.fileCount}</span>
-                  )}
-                </Button>
-              </FolderContextMenu>
-
-              {/* Show subfolders if any */}
-              {folder.children.length > 0 && (
-                <div className="ml-4 mt-1 space-y-1">
-                  <FolderTreeComponent
-                    folders={folder.children}
-                    currentFolderId={currentFolderId}
-                    onFolderSelect={navigateToFolder}
-                    onRename={renameFolder}
-                    onDelete={deleteFolder}
-                  />
+          {folderTree.map((folder) => {
+            const hasMany = folder.children.length >= 5
+            const isExpanded = shouldFolderBeExpanded(folder)
+            
+            return (
+              <div key={folder.id} className="mb-2">
+                <div className="group relative">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "w-full justify-start gap-2 h-8 px-2",
+                      "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                      currentFolderId === folder.id && "bg-sidebar-primary text-sidebar-primary-foreground",
+                    )}
+                    onClick={() => navigateToFolder(folder.id)}
+                  >
+                    {hasMany && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          toggleFolderExpansion(folder.id)
+                        }}
+                        className="flex items-center justify-center w-4 h-4 rounded-sm hover:bg-sidebar-accent"
+                      >
+                        {isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
+                      </button>
+                    )}
+                    {!hasMany && <div className="w-4" />}
+                    
+                    <FolderOpen className="h-4 w-4" />
+                    <span className="text-sm font-medium flex-1 truncate">{folder.name}</span>
+                    {folder.fileCount > 0 && (
+                      <span className="text-xs text-muted-foreground">{folder.fileCount}</span>
+                    )}
+                  </Button>
+                  
                 </div>
-              )}
-            </div>
-          ))}
+
+                {/* Show subfolders if any and if expanded (or if less than 5 subfolders) */}
+                {folder.children.length > 0 && (isExpanded || !hasMany) && (
+                  <div className="ml-4 mt-1 space-y-1">
+                    <FolderTreeComponent
+                      folders={folder.children}
+                      currentFolderId={currentFolderId}
+                      onFolderSelect={navigateToFolder}
+                    />
+                  </div>
+                )}
+              </div>
+            )
+          })}
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!folderToDelete} onOpenChange={() => setFolderToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar proyecto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará permanentemente el proyecto "{folderToDelete?.name}" y todo su contenido de la base de datos y Contentful. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteFolder}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
     </div>
   )
 }

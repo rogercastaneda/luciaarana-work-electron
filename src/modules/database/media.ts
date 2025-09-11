@@ -36,6 +36,17 @@ export const updateMediaOrder = async (params: UpdateMediaOrderParams): Promise<
   return (result as MediaRecord[])[0]
 }
 
+export const updateMediaLayout = async (id: string, layout: string): Promise<MediaRecord> => {
+  const result = await sql`
+    UPDATE media 
+    SET layout = ${layout}, updated_at = NOW()
+    WHERE id = ${id}
+    RETURNING *
+  `
+  
+  return (result as MediaRecord[])[0]
+}
+
 export const deleteMediaRecord = async (id: string): Promise<boolean> => {
   const result = await sql`
     DELETE FROM media 
@@ -55,4 +66,29 @@ export const getMediaWithFolder = async (folderId: number): Promise<(MediaRecord
   `
   
   return result as (MediaRecord & { folder_name: string })[]
+}
+
+export const getMediaByFolderRecursive = async (folderId: number): Promise<MediaRecord[]> => {
+  const result = await sql`
+    WITH RECURSIVE folder_tree AS (
+      SELECT id FROM folders WHERE id = ${folderId}
+      UNION ALL
+      SELECT f.id FROM folders f
+      JOIN folder_tree ft ON f.parent_id = ft.id
+    )
+    SELECT m.* FROM media m
+    JOIN folder_tree ft ON m.folder_id = ft.id
+    ORDER BY m.order_index ASC
+  `
+  
+  return result as MediaRecord[]
+}
+
+export const deleteMediaByFolder = async (folderId: number): Promise<boolean> => {
+  const result = await sql`
+    DELETE FROM media 
+    WHERE folder_id = ${folderId}
+  `
+  
+  return result.length >= 0 // Could be 0 if folder is empty
 }

@@ -1,6 +1,7 @@
 import { 
   getMediaByFolder, 
   updateMediaOrder, 
+  updateMediaLayout,
   deleteMediaRecord,
   type MediaRecord 
 } from '../../modules/database'
@@ -20,6 +21,21 @@ export const updateMediaOrderAction = async (
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to update order'
+    }
+  }
+}
+
+export const updateMediaLayoutAction = async (
+  id: string, 
+  layout: string
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    await updateMediaLayout(id, layout)
+    return { success: true }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update layout'
     }
   }
 }
