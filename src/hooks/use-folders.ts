@@ -5,6 +5,7 @@ import {
   getCategoriesWithProjectsAction,
   createProjectFolder,
   updateProjectFolder,
+  updateProjectHeroImage,
   deleteProjectFolder
 } from '../lib/actions'
 import type { FolderRecord, CategoryWithProjects } from '../modules/database'
@@ -56,9 +57,9 @@ export const useFolders = () => {
     }
   }, [])
 
-  const createProject = useCallback(async (name: string, parentId: number) => {
+  const createProject = useCallback(async (name: string, parentId: number, heroImageUrl?: string | null) => {
     try {
-      const result = await createProjectFolder(name, parentId)
+      const result = await createProjectFolder(name, parentId, heroImageUrl)
       
       if (result.success) {
         await loadCategoriesWithProjects()
@@ -87,6 +88,24 @@ export const useFolders = () => {
       return result
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update project'
+      setState(prev => ({ ...prev, error: errorMessage }))
+      return { success: false, error: errorMessage }
+    }
+  }, [loadCategoriesWithProjects])
+
+  const updateProjectHero = useCallback(async (id: number, heroImageUrl: string | null) => {
+    try {
+      const result = await updateProjectHeroImage(id, heroImageUrl)
+      
+      if (result.success) {
+        await loadCategoriesWithProjects()
+      } else {
+        setState(prev => ({ ...prev, error: result.error || 'Failed to update project hero image' }))
+      }
+      
+      return result
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to update project hero image'
       setState(prev => ({ ...prev, error: errorMessage }))
       return { success: false, error: errorMessage }
     }
@@ -125,6 +144,7 @@ export const useFolders = () => {
     ...state,
     createProject,
     updateProject,
+    updateProjectHero,
     deleteProject,
     refresh
   }

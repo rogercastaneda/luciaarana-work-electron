@@ -17,26 +17,33 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { FolderOpen, Plus, Users, Trash2, Edit2, ChevronDown, ChevronRight } from "lucide-react"
+import { FolderOpen, Plus, Users, Trash2, Edit2, ChevronDown, ChevronRight, ImageIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ThemeProvider } from "@/components/theme-provider"
+import { HeroImageUpload } from "@/components/hero-image-upload"
+import { FolderContextMenu } from "@/components/context-menu"
 
 export default function App() {
-  const { categoriesWithProjects, loading, createProject, updateProject, deleteProject } = useFolders()
+  const { categoriesWithProjects, loading, createProject, updateProject, updateProjectHero, deleteProject } = useFolders()
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null)
   const [selectedFolderName, setSelectedFolderName] = useState<string>("")
   const [newProjectName, setNewProjectName] = useState("")
+  const [newProjectHeroImage, setNewProjectHeroImage] = useState<string | null>(null)
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
   const [isRenameDialogOpen, setIsRenameDialogOpen] = useState(false)
+  const [isHeroEditDialogOpen, setIsHeroEditDialogOpen] = useState(false)
   const [renameProjectName, setRenameProjectName] = useState("")
+  const [editHeroImageUrl, setEditHeroImageUrl] = useState<string | null>(null)
+  const [isHeroUploading, setIsHeroUploading] = useState(false)
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set())
 
   const handleCreateProject = async () => {
     if (newProjectName.trim() && selectedCategoryId) {
-      await createProject(newProjectName.trim(), selectedCategoryId)
+      await createProject(newProjectName.trim(), selectedCategoryId, newProjectHeroImage)
       setNewProjectName("")
+      setNewProjectHeroImage(null)
       setIsCreateDialogOpen(false)
     }
   }
@@ -82,6 +89,48 @@ export default function App() {
         setIsDeleteDialogOpen(false)
       }
     }
+  }
+
+  const handleEditHeroImage = async () => {
+    if (selectedFolderId && !isHeroUploading) {
+      console.log("Saving hero image to DB:", editHeroImageUrl)
+      const result = await updateProjectHero(selectedFolderId, editHeroImageUrl)
+      console.log("Update result:", result)
+      if (result.success) {
+        setIsHeroEditDialogOpen(false)
+      }
+    }
+  }
+
+  const handleProjectRename = (id: string, newName: string): boolean => {
+    const projectId = Number(id)
+    if (projectId) {
+      updateProject(projectId, newName)
+      return true
+    }
+    return false
+  }
+
+  const handleProjectHeroUpdate = async (id: string, heroImageUrl: string | null): Promise<boolean> => {
+    const projectId = Number(id)
+    if (projectId) {
+      const result = await updateProjectHero(projectId, heroImageUrl)
+      return result.success
+    }
+    return false
+  }
+
+  const handleProjectDelete = async (id: string): Promise<boolean> => {
+    const projectId = Number(id)
+    if (projectId) {
+      const result = await deleteProject(projectId)
+      if (result.success && selectedFolderId === projectId) {
+        setSelectedFolderId(null)
+        setSelectedFolderName("")
+      }
+      return result.success
+    }
+    return false
   }
 
   if (loading) {
@@ -142,6 +191,13 @@ export default function App() {
                       }}
                     />
                   </div>
+                  <div>
+                    <Label>Imagen Hero</Label>
+                    <HeroImageUpload
+                      value={newProjectHeroImage}
+                      onChange={setNewProjectHeroImage}
+                    />
+                  </div>
                   <div className="flex justify-end gap-2">
                     <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                       Cancelar
@@ -185,20 +241,35 @@ export default function App() {
                     {(isExpanded || !hasMany) && (
                       <div className="ml-4 space-y-1">
                         {category.projects.map((project) => (
-                          <Button
+                          <FolderContextMenu
                             key={project.id}
-                            variant="ghost"
-                            size="sm"
-                            className={cn(
-                              "w-full justify-start gap-2 h-8 px-2",
-                              "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                              selectedFolderId === project.id && "bg-sidebar-primary text-sidebar-primary-foreground"
-                            )}
-                            onClick={() => handleFolderSelect(project.id, project.name)}
+                            folderId={project.id.toString()}
+                            folderName={project.name}
+                            heroImageUrl={project.hero_image_url}
+                            onRename={handleProjectRename}
+                            onUpdateHero={handleProjectHeroUpdate}
+                            onDelete={handleProjectDelete}
+                            canDelete={true}
+                            canRename={true}
+                            canEditHero={true}
                           >
-                            <FolderOpen className="h-4 w-4" />
-                            <span className="text-sm">{project.name}</span>
-                          </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className={cn(
+                                "w-full justify-start gap-2 h-8 px-2",
+                                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                                selectedFolderId === project.id && "bg-sidebar-primary text-sidebar-primary-foreground"
+                              )}
+                              onClick={() => handleFolderSelect(project.id, project.name)}
+                            >
+                              <FolderOpen className="h-4 w-4" />
+                              <span className="text-sm">{project.name}</span>
+                              {project.hero_image_url && (
+                                <div className="w-2 h-2 bg-blue-500 rounded-full ml-auto" title="Tiene imagen hero" />
+                              )}
+                            </Button>
+                          </FolderContextMenu>
                         ))}
                         
                         {category.projects.length === 0 && (
@@ -235,6 +306,20 @@ export default function App() {
                     variant="outline"
                     size="sm"
                     onClick={() => {
+                      const currentProject = categoriesWithProjects
+                        .flatMap(cat => cat.projects)
+                        .find(project => project.id === selectedFolderId)
+                      setEditHeroImageUrl(currentProject?.hero_image_url || null)
+                      setIsHeroEditDialogOpen(true)
+                    }}
+                  >
+                    <ImageIcon className="h-4 w-4 mr-2" />
+                    Editar Hero
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
                       setRenameProjectName(selectedFolderName)
                       setIsRenameDialogOpen(true)
                     }}
@@ -259,7 +344,40 @@ export default function App() {
           {/* Content Area */}
           <div className="flex-1 p-4">
             {selectedFolderId ? (
-              <MediaDropZone folderId={selectedFolderId} layout="grid" />
+              <div className="space-y-6">
+                {/* Hero Image Section */}
+                {(() => {
+                  const currentProject = categoriesWithProjects
+                    .flatMap(cat => cat.projects)
+                    .find(project => project.id === selectedFolderId)
+                  
+                  if (currentProject?.hero_image_url) {
+                    return (
+                      <div className="relative">
+                        <h3 className="text-lg font-semibold mb-3">Imagen Hero del Proyecto</h3>
+                        <div className="relative rounded-lg overflow-hidden border">
+                          <img
+                            src={currentProject.hero_image_url}
+                            alt={`Hero image for ${currentProject.name}`}
+                            className="w-full h-48 object-cover"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+                          <div className="absolute bottom-4 left-4 text-white">
+                            <h4 className="text-xl font-bold">{currentProject.name}</h4>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  }
+                  return null
+                })()}
+                
+                {/* Media Drop Zone */}
+                <div>
+                  <h3 className="text-lg font-semibold mb-3">Multimedia del Proyecto</h3>
+                  <MediaDropZone folderId={selectedFolderId} layout="grid" />
+                </div>
+              </div>
             ) : (
               <div className="h-full flex items-center justify-center">
                 <Card className="p-8 text-center max-w-md">
@@ -303,6 +421,33 @@ export default function App() {
                   Cancelar
                 </Button>
                 <Button onClick={handleRenameProject}>Renombrar</Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Hero Image Dialog */}
+        <Dialog open={isHeroEditDialogOpen} onOpenChange={setIsHeroEditDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Editar Imagen Hero - {selectedFolderName}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-4">
+              <HeroImageUpload
+                value={editHeroImageUrl}
+                onChange={(url) => {
+                  console.log("Hero image URL changed:", url)
+                  setEditHeroImageUrl(url)
+                }}
+                onUploadingChange={setIsHeroUploading}
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsHeroEditDialogOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleEditHeroImage} disabled={isHeroUploading}>
+                  {isHeroUploading ? "Subiendo..." : "Guardar Hero Image"}
+                </Button>
               </div>
             </div>
           </DialogContent>

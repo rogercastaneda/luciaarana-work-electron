@@ -4,6 +4,7 @@ export type FolderRecord = {
   slug: string
   parent_id: number | null
   is_parent: boolean
+  hero_image_url: string | null
   created_at: Date
   updated_at: Date
 }
@@ -36,6 +37,7 @@ export type CreateFolderParams = {
   slug: string
   parentId?: number
   isParent?: boolean
+  heroImageUrl?: string | null
 }
 
 export type CreateMediaParams = {
@@ -49,4 +51,10 @@ export type CreateMediaParams = {
 export type UpdateMediaOrderParams = {
   id: string
   orderIndex: number
+}
+
+export type UpdateFolderParams = {
+  id: number
+  name?: string
+  heroImageUrl?: string | null
 }

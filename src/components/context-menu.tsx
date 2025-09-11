@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Edit2, Trash2 } from "lucide-react"
+import { Edit2, Trash2, ImageIcon } from "lucide-react"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
@@ -19,29 +19,38 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { HeroImageUpload } from "@/components/hero-image-upload"
 
 interface FolderContextMenuProps {
   children: React.ReactNode
   folderId: string
   folderName: string
+  heroImageUrl?: string | null
   onRename: (id: string, newName: string) => boolean
+  onUpdateHero?: (id: string, heroImageUrl: string | null) => Promise<boolean>
   onDelete: (id: string) => Promise<boolean>
   canDelete?: boolean
   canRename?: boolean
+  canEditHero?: boolean
 }
 
 export function FolderContextMenu({
   children,
   folderId,
   folderName,
+  heroImageUrl,
   onRename,
+  onUpdateHero,
   onDelete,
   canDelete = true,
   canRename = true,
+  canEditHero = false,
 }: FolderContextMenuProps) {
   const [isRenameOpen, setIsRenameOpen] = useState(false)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
+  const [isHeroEditOpen, setIsHeroEditOpen] = useState(false)
   const [newName, setNewName] = useState(folderName)
+  const [newHeroImageUrl, setNewHeroImageUrl] = useState<string | null>(heroImageUrl || null)
 
   const handleRename = () => {
     if (newName.trim() && newName.trim() !== folderName) {
@@ -51,6 +60,15 @@ export function FolderContextMenu({
       }
     } else {
       setIsRenameOpen(false)
+    }
+  }
+
+  const handleUpdateHero = async () => {
+    if (onUpdateHero) {
+      const success = await onUpdateHero(folderId, newHeroImageUrl)
+      if (success) {
+        setIsHeroEditOpen(false)
+      }
     }
   }
 
@@ -75,6 +93,17 @@ export function FolderContextMenu({
             >
               <Edit2 className="h-4 w-4 mr-2" />
               Renombrar
+            </ContextMenuItem>
+          )}
+          {canEditHero && (
+            <ContextMenuItem
+              onClick={() => {
+                setNewHeroImageUrl(heroImageUrl || null)
+                setIsHeroEditOpen(true)
+              }}
+            >
+              <ImageIcon className="h-4 w-4 mr-2" />
+              Editar Hero
             </ContextMenuItem>
           )}
           {canDelete && (
@@ -112,6 +141,29 @@ export function FolderContextMenu({
                 Cancelar
               </Button>
               <Button onClick={handleRename}>Renombrar</Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Hero Image Edit Dialog */}
+      <Dialog open={isHeroEditOpen} onOpenChange={setIsHeroEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Imagen Hero</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <HeroImageUpload
+              value={newHeroImageUrl}
+              onChange={setNewHeroImageUrl}
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsHeroEditOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleUpdateHero}>
+                Guardar
+              </Button>
             </div>
           </div>
         </DialogContent>

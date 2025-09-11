@@ -3,15 +3,16 @@ import type {
   FolderRecord, 
   FolderWithChildren, 
   CategoryWithProjects, 
-  CreateFolderParams 
+  CreateFolderParams,
+  UpdateFolderParams
 } from './types'
 
 export const createFolder = async (params: CreateFolderParams): Promise<FolderRecord> => {
-  const { name, slug, parentId, isParent = false } = params
+  const { name, slug, parentId, isParent = false, heroImageUrl = null } = params
   
   const result = await sql`
-    INSERT INTO folders (name, slug, parent_id, is_parent, created_at, updated_at)
-    VALUES (${name}, ${slug}, ${parentId || null}, ${isParent}, NOW(), NOW())
+    INSERT INTO folders (name, slug, parent_id, is_parent, hero_image_url, created_at, updated_at)
+    VALUES (${name}, ${slug}, ${parentId || null}, ${isParent}, ${heroImageUrl}, NOW(), NOW())
     RETURNING *
   `
   
@@ -52,6 +53,7 @@ export const getCategoriesWithProjects = async (): Promise<CategoryWithProjects[
             'slug', c.slug,
             'parent_id', c.parent_id,
             'is_parent', c.is_parent,
+            'hero_image_url', c.hero_image_url,
             'created_at', c.created_at,
             'updated_at', c.updated_at
           ) ORDER BY c.name
@@ -102,6 +104,41 @@ export const updateFolder = async (id: number, name: string): Promise<FolderReco
   `
   
   return result.length > 0 ? (result[0] as FolderRecord) : null
+}
+
+export const updateFolderHero = async (params: UpdateFolderParams): Promise<FolderRecord | null> => {
+  const { id, name, heroImageUrl } = params
+  
+  console.log("updateFolderHero called with:", { id, name, heroImageUrl })
+  
+  if (name !== undefined && heroImageUrl !== undefined) {
+    const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+    console.log("Updating both name and hero image")
+    const result = await sql`
+      UPDATE folders 
+      SET name = ${name}, slug = ${slug}, hero_image_url = ${heroImageUrl}, updated_at = NOW()
+      WHERE id = ${id}
+      RETURNING *
+    `
+    console.log("Update result (both):", result)
+    return result.length > 0 ? (result[0] as FolderRecord) : null
+  } else if (name !== undefined) {
+    console.log("Updating only name")
+    return updateFolder(id, name)
+  } else if (heroImageUrl !== undefined) {
+    console.log("Updating only hero image URL")
+    const result = await sql`
+      UPDATE folders 
+      SET hero_image_url = ${heroImageUrl}, updated_at = NOW()
+      WHERE id = ${id}
+      RETURNING *
+    `
+    console.log("Update result (hero only):", result)
+    return result.length > 0 ? (result[0] as FolderRecord) : null
+  }
+  
+  console.log("No updates to make, returning current folder")
+  return getFolderById(id)
 }
 
 export const deleteFolder = async (id: number): Promise<boolean> => {

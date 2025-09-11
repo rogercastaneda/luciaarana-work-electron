@@ -8,6 +8,8 @@ export {
 export {
   createProjectFolder,
   updateProjectFolder,
+  updateProjectFolderWithHero,
+  updateProjectHeroImage,
   getCategories,
   getProjectsForCategory,
   getCategoriesWithProjectsAction,

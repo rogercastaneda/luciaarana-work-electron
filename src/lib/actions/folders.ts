@@ -6,17 +6,20 @@ import {
   getFolderById,
   getFolderBySlug,
   updateFolder,
+  updateFolderHero,
   deleteFolder
 } from '../../modules/database'
 import type { 
   FolderRecord, 
   CategoryWithProjects, 
-  CreateFolderParams 
+  CreateFolderParams,
+  UpdateFolderParams 
 } from '../../modules/database'
 
 export const createProjectFolder = async (
   name: string, 
-  parentId: number
+  parentId: number,
+  heroImageUrl?: string | null
 ): Promise<{ success: boolean; data?: FolderRecord; error?: string }> => {
   try {
     const slug = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
@@ -33,7 +36,8 @@ export const createProjectFolder = async (
       name,
       slug,
       parentId,
-      isParent: false
+      isParent: false,
+      heroImageUrl
     })
 
     return { success: true, data: folder }
@@ -76,6 +80,43 @@ export const updateProjectFolder = async (
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to update project'
+    }
+  }
+}
+
+export const updateProjectFolderWithHero = async (
+  params: UpdateFolderParams
+): Promise<{ success: boolean; data?: FolderRecord; error?: string }> => {
+  try {
+    const folder = await updateFolderHero(params)
+    if (folder) {
+      return { success: true, data: folder }
+    } else {
+      return { success: false, error: 'Project not found' }
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update project'
+    }
+  }
+}
+
+export const updateProjectHeroImage = async (
+  id: number,
+  heroImageUrl: string | null
+): Promise<{ success: boolean; data?: FolderRecord; error?: string }> => {
+  try {
+    const folder = await updateFolderHero({ id, heroImageUrl })
+    if (folder) {
+      return { success: true, data: folder }
+    } else {
+      return { success: false, error: 'Project not found' }
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update project hero image'
     }
   }
 }

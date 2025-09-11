@@ -17,6 +17,7 @@ export {
   getFolderById,
   getFolderBySlug,
   updateFolder,
+  updateFolderHero,
   deleteFolder
 } from './folders'
 
@@ -27,5 +28,6 @@ export type {
   CategoryWithProjects,
   CreateFolderParams,
   CreateMediaParams,
-  UpdateMediaOrderParams
+  UpdateMediaOrderParams,
+  UpdateFolderParams
 } from './types'
