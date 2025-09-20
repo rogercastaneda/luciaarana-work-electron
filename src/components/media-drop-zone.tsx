@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Upload, Video, Star, GripVertical, Loader2, X, Trash2, RotateCw, GalleryHorizontal, GalleryVertical } from "lucide-react"
+import { Upload, Video, Star, GripVertical, Loader2, X, Trash2, RotateCw, GalleryHorizontal, GalleryVertical, Grid2X2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type PendingFile = {
@@ -18,7 +18,7 @@ type PendingFile = {
   preview?: string
   id: string
   type: 'image' | 'video'
-  orientation?: 'horizontal' | 'vertical'
+  orientation?: 'horizontal' | 'vertical' | 'double'
 }
 
 type MediaDropZoneProps = {
@@ -42,7 +42,7 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
   const [pendingFiles, setPendingFiles] = useState<PendingFile[]>([])
   const [currentImageIndex, setCurrentImageIndex] = useState(0)
   const [showOrientationModal, setShowOrientationModal] = useState(false)
-  const [selectedOrientation, setSelectedOrientation] = useState<'horizontal' | 'vertical'>('horizontal')
+  const [selectedOrientation, setSelectedOrientation] = useState<'horizontal' | 'vertical' | 'double'>('vertical')
   const [draggedItem, setDraggedItem] = useState<string | null>(null)
   const [dragOverItem, setDragOverItem] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -143,7 +143,7 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
   const handleUploadAllFiles = useCallback(async (files: PendingFile[]) => {
     // Enviar archivos con sus orientaciones específicas
     for (const pendingFile of files) {
-      const orientation = pendingFile.orientation || 'horizontal' // default para videos
+      const orientation = pendingFile.orientation || 'vertical' // default para videos
       await upload([pendingFile.file], folderId, orientation)
     }
   }, [folderId, upload])
@@ -163,7 +163,7 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
 
       if (nextImageIndex >= 0) {
         setCurrentImageIndex(nextImageIndex)
-        setSelectedOrientation('horizontal')
+        setSelectedOrientation('vertical')
       } else {
         // No hay más imágenes, proceder con el upload
         setShowOrientationModal(false)
@@ -230,7 +230,11 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
   }, [deleteMedia])
 
   const handleLayoutChange = useCallback(async (mediaId: string, currentLayout: string) => {
-    const newLayout = currentLayout === 'horizontal' ? 'vertical' : 'horizontal'
+    const newLayout = currentLayout === 'horizontal'
+      ? 'vertical'
+      : currentLayout === 'vertical'
+        ? 'double'
+        : 'horizontal'
     await updateLayout(mediaId, newLayout)
   }, [updateLayout])
 
@@ -316,12 +320,12 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
                 onDragLeave={handleMediaDragLeave}
                 onDrop={(e) => handleMediaDrop(e, file.id)}
               >
-                <div className="relative aspect-square">
+                <div className="relative aspect-square w-full h-48 overflow-hidden">
                   {file.media_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                    <img 
-                      src={file.media_url} 
-                      alt={`Media ${file.id}`} 
-                      className="object-cover w-full h-full" 
+                    <img
+                      src={file.media_url}
+                      alt={`Media ${file.id}`}
+                      className="absolute inset-0 w-full h-full object-cover"
                     />
                   ) : (
                     <div className="flex items-center justify-center w-full h-full bg-muted">
@@ -343,10 +347,12 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
                         handleLayoutChange(file.id, file.layout)
                       }}
                       className="p-2 transition-colors rounded-md bg-blue-500/80 backdrop-blur-sm hover:bg-blue-600/80"
-                      title={`Cambiar a ${file.layout === 'horizontal' ? 'vertical' : 'horizontal'}`}
+                      title={`Cambiar a ${file.layout === 'horizontal' ? 'vertical' : file.layout === 'vertical' ? 'double' : 'horizontal'}`}
                     >
                       {file.layout === 'horizontal' ? (
                         <GalleryVertical className="w-4 h-4 text-white" />
+                      ) : file.layout === 'vertical' ? (
+                        <Grid2X2 className="w-4 h-4 text-white" />
                       ) : (
                         <GalleryHorizontal className="w-4 h-4 text-white" />
                       )}
@@ -400,14 +406,14 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
 
                   <RadioGroup
                     value={selectedOrientation}
-                    onValueChange={(value) => setSelectedOrientation(value as "horizontal" | "vertical")}
+                    onValueChange={(value) => setSelectedOrientation(value as "horizontal" | "vertical" | "double")}
                     className="space-y-3"
                   >
                     <div className="flex items-center p-3 space-x-3 transition-colors border rounded-lg hover:bg-muted/50">
                       <RadioGroupItem value="horizontal" id="horizontal" />
                       <div className="flex-1">
                         <Label htmlFor="horizontal" className="font-medium cursor-pointer">
-                          Horizontal (Paisaje)
+                          Horizontal
                         </Label>
                         <p className="mt-1 text-xs text-muted-foreground">
                           Ideal para banners, encabezados y contenido ancho
@@ -420,13 +426,26 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
                       <RadioGroupItem value="vertical" id="vertical" />
                       <div className="flex-1">
                         <Label htmlFor="vertical" className="font-medium cursor-pointer">
-                          Vertical (Retrato)
+                          Vertical
                         </Label>
                         <p className="mt-1 text-xs text-muted-foreground">
                           Perfecto para perfiles, tarjetas y contenido alto
                         </p>
                       </div>
                       <div className="flex-shrink-0 w-6 h-8 border rounded bg-muted" />
+                    </div>
+
+                    <div className="flex items-center p-3 space-x-3 transition-colors border rounded-lg hover:bg-muted/50">
+                      <RadioGroupItem value="double" id="double" />
+                      <div className="flex-1">
+                        <Label htmlFor="double" className="font-medium cursor-pointer">
+                          Double
+                        </Label>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Ideal para galerías y contenido que ocupa doble espacio
+                        </p>
+                      </div>
+                      <div className="flex-shrink-0 w-8 h-8 border rounded bg-muted" />
                     </div>
                   </RadioGroup>
                 </div>
