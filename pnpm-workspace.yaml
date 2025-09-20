@@ -1,0 +1,8 @@
+ignoredBuiltDependencies:
+  - electron-winstaller
+  - esbuild
+  - fs-xattr
+
+onlyBuiltDependencies:
+  - electron
+  - macos-alias
