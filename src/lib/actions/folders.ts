@@ -1,4 +1,4 @@
-import { 
+import {
   createFolder,
   getParentCategories,
   getProjectsByCategory,
@@ -8,16 +8,19 @@ import {
   getFolderWithRelatedProjects,
   getAllProjectsForSelection,
   getProjectsGroupedByCategory,
+  getProjectsWithFirstImage,
   updateFolder,
   updateFolderHero,
+  updateProjectOrdering,
   deleteFolder
 } from '../../modules/database'
-import type { 
-  FolderRecord, 
-  CategoryWithProjects, 
+import type {
+  FolderRecord,
+  CategoryWithProjects,
   CreateFolderParams,
   UpdateFolderParams,
-  FolderWithRelatedProjects 
+  FolderWithRelatedProjects,
+  ProjectWithFirstImage
 } from '../../modules/database'
 
 export const createProjectFolder = async (
@@ -201,6 +204,39 @@ export const deleteProjectFolder = async (
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to delete project'
+    }
+  }
+}
+
+export const getProjectsWithFirstImageAction = async (
+  categoryId: number
+): Promise<{ success: boolean; data?: ProjectWithFirstImage[]; error?: string }> => {
+  try {
+    const projects = await getProjectsWithFirstImage(categoryId)
+    return { success: true, data: projects }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to get projects with first image'
+    }
+  }
+}
+
+export const updateProjectOrderingAction = async (
+  projectId: number,
+  newOrdering: number
+): Promise<{ success: boolean; data?: FolderRecord; error?: string }> => {
+  try {
+    const project = await updateProjectOrdering(projectId, newOrdering)
+    if (project) {
+      return { success: true, data: project }
+    } else {
+      return { success: false, error: 'Project not found' }
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to update project ordering'
     }
   }
 }

@@ -19,8 +19,10 @@ export {
   getFolderWithRelatedProjects,
   getAllProjectsForSelection,
   getProjectsGroupedByCategory,
+  getProjectsWithFirstImage,
   updateFolder,
   updateFolderHero,
+  updateProjectOrdering,
   deleteFolder
 } from './folders'
 
@@ -34,5 +36,6 @@ export type {
   UpdateMediaOrderParams,
   UpdateFolderParams,
   UpdateRelatedProjectsParams,
-  FolderWithRelatedProjects
+  FolderWithRelatedProjects,
+  ProjectWithFirstImage
 } from './types'

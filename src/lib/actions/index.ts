@@ -18,5 +18,7 @@ export {
   getProjectsForCategory,
   getCategoriesWithProjectsAction,
   getFolderAction,
+  getProjectsWithFirstImageAction,
+  updateProjectOrderingAction,
   deleteProjectFolder
 } from './folders'
