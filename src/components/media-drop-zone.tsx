@@ -320,12 +320,12 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
                 onDragLeave={handleMediaDragLeave}
                 onDrop={(e) => handleMediaDrop(e, file.id)}
               >
-                <div className="relative aspect-square">
+                <div className="relative aspect-square w-full h-48 overflow-hidden">
                   {file.media_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
-                    <img 
-                      src={file.media_url} 
-                      alt={`Media ${file.id}`} 
-                      className="object-cover w-full h-full" 
+                    <img
+                      src={file.media_url}
+                      alt={`Media ${file.id}`}
+                      className="absolute inset-0 w-full h-full object-cover"
                     />
                   ) : (
                     <div className="flex items-center justify-center w-full h-full bg-muted">
