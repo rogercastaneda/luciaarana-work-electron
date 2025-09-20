@@ -7,6 +7,7 @@ export type FolderRecord = {
   hero_image_url: string | null
   related_project_1_id: number | null
   related_project_2_id: number | null
+  ordering: number
   created_at: Date
   updated_at: Date
 }
@@ -72,4 +73,8 @@ export type UpdateRelatedProjectsParams = {
 export type FolderWithRelatedProjects = FolderRecord & {
   related_project_1?: FolderRecord | null
   related_project_2?: FolderRecord | null
+}
+
+export type ProjectWithFirstImage = FolderRecord & {
+  first_image_url?: string | null
 }

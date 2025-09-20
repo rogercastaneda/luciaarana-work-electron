@@ -1,23 +1,37 @@
 import { sql } from './connection'
-import type { 
-  FolderRecord, 
-  FolderWithChildren, 
-  CategoryWithProjects, 
+import type {
+  FolderRecord,
+  FolderWithChildren,
+  CategoryWithProjects,
   CreateFolderParams,
   UpdateFolderParams,
-  FolderWithRelatedProjects
+  FolderWithRelatedProjects,
+  ProjectWithFirstImage
 } from './types'
 
 export const createFolder = async (params: CreateFolderParams): Promise<FolderRecord> => {
   const { name, slug, parentId, isParent = false, heroImageUrl = null } = params
-  
+
+  // Get next ordering number for subfolders
+  const nextOrdering = isParent ? 0 : await getNextOrdering(parentId)
+
   const result = await sql`
-    INSERT INTO folders (name, slug, parent_id, is_parent, hero_image_url, created_at, updated_at)
-    VALUES (${name}, ${slug}, ${parentId || null}, ${isParent}, ${heroImageUrl}, NOW(), NOW())
+    INSERT INTO folders (name, slug, parent_id, is_parent, hero_image_url, ordering, created_at, updated_at)
+    VALUES (${name}, ${slug}, ${parentId || null}, ${isParent}, ${heroImageUrl}, ${nextOrdering}, NOW(), NOW())
     RETURNING *
   `
-  
+
   return result[0] as FolderRecord
+}
+
+const getNextOrdering = async (parentId?: number): Promise<number> => {
+  const result = await sql`
+    SELECT COALESCE(MAX(ordering), 0) + 1 as next_ordering
+    FROM folders
+    WHERE parent_id = ${parentId || null} AND is_parent = false
+  `
+
+  return result[0]?.next_ordering || 1
 }
 
 export const getParentCategories = async (): Promise<FolderRecord[]> => {
@@ -32,17 +46,17 @@ export const getParentCategories = async (): Promise<FolderRecord[]> => {
 
 export const getProjectsByCategory = async (categoryId: number): Promise<FolderRecord[]> => {
   const result = await sql`
-    SELECT * FROM folders 
+    SELECT * FROM folders
     WHERE parent_id = ${categoryId} AND is_parent = false
-    ORDER BY name ASC
+    ORDER BY ordering ASC, name ASC
   `
-  
+
   return result as FolderRecord[]
 }
 
 export const getCategoriesWithProjects = async (): Promise<CategoryWithProjects[]> => {
   const result = await sql`
-    SELECT 
+    SELECT
       p.id,
       p.name,
       p.slug,
@@ -57,10 +71,11 @@ export const getCategoriesWithProjects = async (): Promise<CategoryWithProjects[
             'hero_image_url', c.hero_image_url,
             'related_project_1_id', c.related_project_1_id,
             'related_project_2_id', c.related_project_2_id,
+            'ordering', c.ordering,
             'created_at', c.created_at,
             'updated_at', c.updated_at
-          ) ORDER BY c.name
-        ) FILTER (WHERE c.id IS NOT NULL), 
+          ) ORDER BY c.ordering ASC, c.name ASC
+        ) FILTER (WHERE c.id IS NOT NULL),
         '[]'
       ) as projects,
       COALESCE(SUM(media_counts.media_count), 0)::integer as total_media_count
@@ -75,7 +90,7 @@ export const getCategoriesWithProjects = async (): Promise<CategoryWithProjects[
     GROUP BY p.id, p.name, p.slug
     ORDER BY p.name ASC
   `
-  
+
   return result as CategoryWithProjects[]
 }
 
@@ -209,6 +224,7 @@ export const getFolderWithRelatedProjects = async (id: number): Promise<FolderWi
     hero_image_url: row.hero_image_url,
     related_project_1_id: row.related_project_1_id,
     related_project_2_id: row.related_project_2_id,
+    ordering: row.ordering,
     created_at: row.created_at,
     updated_at: row.updated_at,
     related_project_1: row.related_1_id ? {
@@ -220,6 +236,7 @@ export const getFolderWithRelatedProjects = async (id: number): Promise<FolderWi
       hero_image_url: row.related_1_hero_image_url,
       related_project_1_id: null,
       related_project_2_id: null,
+      ordering: 0,
       created_at: row.related_1_created_at,
       updated_at: row.related_1_updated_at,
     } : null,
@@ -232,6 +249,7 @@ export const getFolderWithRelatedProjects = async (id: number): Promise<FolderWi
       hero_image_url: row.related_2_hero_image_url,
       related_project_1_id: null,
       related_project_2_id: null,
+      ordering: 0,
       created_at: row.related_2_created_at,
       updated_at: row.related_2_updated_at,
     } : null,
@@ -252,7 +270,7 @@ export const getAllProjectsForSelection = async (): Promise<FolderRecord[]> => {
 
 export const getProjectsGroupedByCategory = async () => {
   const result = await sql`
-    SELECT 
+    SELECT
       p.id as parent_id,
       p.name as parent_name,
       json_agg(
@@ -265,9 +283,10 @@ export const getProjectsGroupedByCategory = async () => {
           'hero_image_url', c.hero_image_url,
           'related_project_1_id', c.related_project_1_id,
           'related_project_2_id', c.related_project_2_id,
+          'ordering', c.ordering,
           'created_at', c.created_at,
           'updated_at', c.updated_at
-        ) ORDER BY c.name
+        ) ORDER BY c.ordering ASC, c.name ASC
       ) as projects
     FROM folders p
     LEFT JOIN folders c ON c.parent_id = p.id AND c.is_parent = false
@@ -275,7 +294,7 @@ export const getProjectsGroupedByCategory = async () => {
     GROUP BY p.id, p.name
     ORDER BY p.name ASC
   `
-  
+
   return result as Array<{
     parent_id: number
     parent_name: string
@@ -287,6 +306,48 @@ export const deleteFolder = async (id: number): Promise<boolean> => {
   const result = await sql`
     DELETE FROM folders WHERE id = ${id}
   `
-  
+
   return result.length > 0
+}
+
+export const getProjectsWithFirstImage = async (categoryId: number): Promise<ProjectWithFirstImage[]> => {
+  const result = await sql`
+    SELECT
+      f.id,
+      f.name,
+      f.slug,
+      f.parent_id,
+      f.is_parent,
+      f.hero_image_url,
+      f.related_project_1_id,
+      f.related_project_2_id,
+      f.ordering,
+      f.created_at,
+      f.updated_at,
+      m.media_url as first_image_url
+    FROM folders f
+    LEFT JOIN (
+      SELECT DISTINCT ON (folder_id)
+        folder_id,
+        media_url
+      FROM media
+      WHERE media_url ~* '\\.(jpg|jpeg|png|gif|webp)$'
+      ORDER BY folder_id, order_index ASC
+    ) m ON f.id = m.folder_id
+    WHERE f.parent_id = ${categoryId} AND f.is_parent = false
+    ORDER BY f.ordering ASC, f.name ASC
+  `
+
+  return result as ProjectWithFirstImage[]
+}
+
+export const updateProjectOrdering = async (projectId: number, newOrdering: number): Promise<FolderRecord | null> => {
+  const result = await sql`
+    UPDATE folders
+    SET ordering = ${newOrdering}, updated_at = NOW()
+    WHERE id = ${projectId}
+    RETURNING *
+  `
+
+  return result.length > 0 ? (result[0] as FolderRecord) : null
 }

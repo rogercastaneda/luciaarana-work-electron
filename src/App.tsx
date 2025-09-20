@@ -1,9 +1,11 @@
 import { useState } from "react"
 import { useFolders } from "@/hooks/use-folders"
-import { 
-  getFolderWithRelatedProjectsAction, 
-  getProjectsGroupedByCategoryAction, 
-  updateProjectRelatedProjects 
+import {
+  getFolderWithRelatedProjectsAction,
+  getProjectsGroupedByCategoryAction,
+  updateProjectRelatedProjects,
+  getProjectsWithFirstImageAction,
+  updateProjectOrderingAction
 } from "@/lib/actions"
 import { MediaDropZone } from "@/components/media-drop-zone"
 import { Button } from "@/components/ui/button"
@@ -28,6 +30,8 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { HeroImageUpload } from "@/components/hero-image-upload"
 import { FolderContextMenu } from "@/components/context-menu"
 import { RelatedProjectsSelector } from "@/components/related-projects-selector"
+import { ProjectListing } from "@/components/project-listing"
+import type { ProjectWithFirstImage } from "@/modules/database/types"
 
 export default function App() {
   const { categoriesWithProjects, loading, createProject, updateProject, updateProjectHero, deleteProject } = useFolders()
@@ -46,6 +50,9 @@ export default function App() {
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set())
   const [currentProjectWithRelated, setCurrentProjectWithRelated] = useState<any>(null)
   const [groupedProjects, setGroupedProjects] = useState<any[]>([])
+  const [viewMode, setViewMode] = useState<'project' | 'category'>('project')
+  const [selectedCategoryForListing, setSelectedCategoryForListing] = useState<{ id: number; name: string } | null>(null)
+  const [projectsWithImages, setProjectsWithImages] = useState<ProjectWithFirstImage[]>([])
 
   const handleCreateProject = async () => {
     if (newProjectName.trim() && selectedCategoryId) {
@@ -178,6 +185,50 @@ export default function App() {
     }
   }
 
+  const handleCategoryClick = async (categoryId: number, categoryName: string) => {
+    try {
+      const result = await getProjectsWithFirstImageAction(categoryId)
+      if (result.success && result.data) {
+        setSelectedCategoryForListing({ id: categoryId, name: categoryName })
+        setProjectsWithImages(result.data)
+        setViewMode('category')
+        setSelectedFolderId(null)
+        setSelectedFolderName("")
+      }
+    } catch (error) {
+      console.error("Error loading projects for category:", error)
+    }
+  }
+
+  const handleBackToProjects = () => {
+    setViewMode('project')
+    setSelectedCategoryForListing(null)
+    setProjectsWithImages([])
+  }
+
+  const handleProjectReorder = async (projectId: number, newOrdering: number) => {
+    try {
+      const result = await updateProjectOrderingAction(projectId, newOrdering)
+      if (result.success && selectedCategoryForListing) {
+        // Refresh the projects list
+        const refreshResult = await getProjectsWithFirstImageAction(selectedCategoryForListing.id)
+        if (refreshResult.success && refreshResult.data) {
+          setProjectsWithImages(refreshResult.data)
+        }
+      }
+    } catch (error) {
+      console.error("Error updating project order:", error)
+    }
+  }
+
+  const handleProjectClickFromListing = (projectId: number) => {
+    const project = projectsWithImages.find(p => p.id === projectId)
+    if (project) {
+      setViewMode('project')
+      handleFolderSelect(projectId, project.name)
+    }
+  }
+
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -264,17 +315,21 @@ export default function App() {
                 
                 return (
                   <div key={category.id} className="mb-4">
-                    <div className="flex items-center gap-2 p-2 text-sm font-medium text-muted-foreground">
+                    <div className="flex items-center gap-2 p-2 text-sm font-medium text-muted-foreground hover:bg-sidebar-accent rounded-md cursor-pointer transition-colors"
+                         onClick={() => handleCategoryClick(category.id, category.name)}>
                       {hasMany && (
                         <button
-                          onClick={() => toggleCategoryExpansion(category.id)}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            toggleCategoryExpansion(category.id)
+                          }}
                           className="flex items-center justify-center w-4 h-4 rounded-sm hover:bg-sidebar-accent"
                         >
                           {isExpanded ? <ChevronDown className="w-3 h-3" /> : <ChevronRight className="w-3 h-3" />}
                         </button>
                       )}
                       {!hasMany && <div className="w-4" />}
-                      
+
                       <Users className="h-4 w-4" />
                       <span>{category.name}</span>
                       <Badge variant="secondary" className="ml-auto text-xs">
@@ -388,7 +443,15 @@ export default function App() {
 
           {/* Content Area */}
           <div className="flex-1 p-4">
-            {selectedFolderId ? (
+            {viewMode === 'category' && selectedCategoryForListing ? (
+              <ProjectListing
+                categoryName={selectedCategoryForListing.name}
+                projects={projectsWithImages}
+                onBack={handleBackToProjects}
+                onProjectReorder={handleProjectReorder}
+                onProjectClick={handleProjectClickFromListing}
+              />
+            ) : selectedFolderId ? (
               <div className="space-y-6">
                 {/* Hero Image Section */}
                 {(() => {
