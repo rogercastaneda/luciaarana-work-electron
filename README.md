@@ -15,8 +15,9 @@ Portfolio and work management desktop application built with Electron Forge and 
 
 ## Technology Stack
 
-- **Desktop**: Electron 37.4.0 with Electron Forge 7.8.3
-- **Build Tool**: Vite 7.1.2 via `@electron-forge/plugin-vite`
+- **Desktop**: Electron 37.4.0 with Electron Forge 7.11.1
+- **Build Tool**: Vite 7.3.1 via `@electron-forge/plugin-vite`
+- **Package Manager**: pnpm 10.21.0 (with hoisted node-linker for Electron compatibility)
 - **Frontend**: React 18.3.1 + TypeScript 5.8.3
 - **UI Library**: shadcn/ui + Radix UI primitives + Tailwind CSS 3.4.13
 - **Database**: PostgreSQL hosted on Neon with `@neondatabase/serverless`
@@ -29,31 +30,42 @@ Portfolio and work management desktop application built with Electron Forge and 
 ### Prerequisites
 
 - Node.js (v18 or higher)
-- npm or yarn
+- pnpm (v10.21.0 or higher) - Install with `npm install -g pnpm` or `corepack enable`
 - PostgreSQL database (Neon)
 - Contentful account for media storage
 
 ### Installation
 
 1. Clone the repository
+
 2. Install dependencies:
 ```bash
-npm install
+pnpm install
 ```
 
 3. Set up environment variables for database and Contentful connections
+
+### Important: pnpm Configuration
+
+This project uses **pnpm with hoisted node-linker** for compatibility with Electron Forge. The `.npmrc` file is already configured with:
+
+```
+node-linker=hoisted
+```
+
+**Why hoisted?** Electron Forge's packaging process requires a flat node_modules structure to properly bundle native dependencies like `fs-xattr` (used by the DMG maker). The default pnpm symlinked structure doesn't work with Electron's module resolution.
 
 ### Development
 
 #### Start Development Mode (Recommended)
 ```bash
-npm start
+pnpm start
 ```
 Launches Electron app with Vite dev server and hot reload for both React components and Electron main process.
 
 #### Vite Only Development
 ```bash
-npm run dev:vite
+pnpm run dev:vite
 ```
 Starts only the Vite dev server for web-only development and testing.
 
@@ -61,32 +73,53 @@ Starts only the Vite dev server for web-only development and testing.
 
 ### Package Application
 ```bash
-npm run package
+pnpm run package
 ```
 Creates a packaged application for your current platform in the `out/` directory.
 
 ### Create Installers
 ```bash
-npm run make
+pnpm run make
 ```
 Creates platform-specific installers:
 - **macOS**: .dmg files
 - **Windows**: .exe installers via Squirrel
 - **Linux**: .deb and .rpm packages
 
+**Output location**: `out/make/`
+
 ### Cross-Platform Builds
 ```bash
-npx electron-forge make --platform=darwin --arch=arm64    # macOS Apple Silicon
-npx electron-forge make --platform=darwin --arch=x64     # macOS Intel
-npx electron-forge make --platform=linux --arch=x64      # Linux
-npx electron-forge make --platform=win32 --arch=x64      # Windows
+pnpm exec electron-forge make --platform=darwin --arch=arm64    # macOS Apple Silicon
+pnpm exec electron-forge make --platform=darwin --arch=x64     # macOS Intel
+pnpm exec electron-forge make --platform=linux --arch=x64      # Linux
+pnpm exec electron-forge make --platform=win32 --arch=x64      # Windows
 ```
 
 ### Complete Build Pipeline
 ```bash
-npm run make-installers
+pnpm run make-installers
 ```
 Runs the complete pipeline: package + create installers.
+
+### Troubleshooting Native Module Compilation
+
+If you encounter errors related to native modules (like `fs-xattr`) during the build process:
+
+1. **Ensure hoisted configuration**: Verify `.npmrc` contains `node-linker=hoisted`
+2. **Clean reinstall**:
+   ```bash
+   rm -rf node_modules pnpm-lock.yaml
+   pnpm install
+   ```
+3. **Rebuild native modules** (if needed):
+   ```bash
+   pnpm rebuild
+   ```
+
+**Common issues**:
+- `Cannot find module './build/Release/xattr'` → Native modules not compiled, run clean reinstall
+- Architecture mismatch errors → Ensure you're building for the correct target architecture
 
 ## Project Structure
 
