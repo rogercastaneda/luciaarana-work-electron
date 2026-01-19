@@ -27,7 +27,6 @@ type MediaDropZoneProps = {
 }
 
 export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps) {
-  console.log('🔍 MediaDropZone rendered with folderId:', folderId)
   const { media, loading: mediaLoading, refresh, updateOrder, updateLayout, deleteMedia } = useMedia(folderId)
   const { upload, isUploading, progress, error, reset } = useUpload({
     onSuccess: () => {
@@ -70,11 +69,9 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
   }, [])
 
   const handleUploadAllFiles = useCallback(async (files: PendingFile[], targetFolderId: number) => {
-    console.log('🎯 handleUploadAllFiles called with targetFolderId:', targetFolderId)
     // Enviar archivos con sus orientaciones específicas
     for (const pendingFile of files) {
       const orientation = pendingFile.orientation || 'vertical' // default para videos
-      console.log('⬆️ Uploading file to folderId:', targetFolderId, 'orientation:', orientation)
       await upload([pendingFile.file], targetFolderId, orientation)
     }
   }, [upload])
@@ -123,7 +120,6 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
         setShowOrientationModal(true)
       } else {
         // Solo videos, subir directamente
-        console.log('📤 Uploading videos to folderId:', folderId)
         handleUploadAllFiles(newPendingFiles, folderId)
       }
     }
@@ -171,7 +167,6 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
       } else {
         // No hay más imágenes, proceder con el upload
         setShowOrientationModal(false)
-        console.log('📤 Orientation confirmed, uploading to folderId:', folderId)
         handleUploadAllFiles(updatedFiles, folderId)
       }
     }
