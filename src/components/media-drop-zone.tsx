@@ -27,6 +27,7 @@ type MediaDropZoneProps = {
 }
 
 export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps) {
+  console.log('🔍 MediaDropZone rendered with folderId:', folderId)
   const { media, loading: mediaLoading, refresh, updateOrder, updateLayout, deleteMedia } = useMedia(folderId)
   const { upload, isUploading, progress, error, reset } = useUpload({
     onSuccess: () => {
@@ -68,14 +69,15 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
     e.preventDefault()
   }, [])
 
-  const handleDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    setIsDragOver(false)
-    dragCounter.current = 0
-    if (e.dataTransfer.files) {
-      processFiles(e.dataTransfer.files)
+  const handleUploadAllFiles = useCallback(async (files: PendingFile[], targetFolderId: number) => {
+    console.log('🎯 handleUploadAllFiles called with targetFolderId:', targetFolderId)
+    // Enviar archivos con sus orientaciones específicas
+    for (const pendingFile of files) {
+      const orientation = pendingFile.orientation || 'vertical' // default para videos
+      console.log('⬆️ Uploading file to folderId:', targetFolderId, 'orientation:', orientation)
+      await upload([pendingFile.file], targetFolderId, orientation)
     }
-  }, [])
+  }, [upload])
 
   const processFiles = useCallback((fileList: FileList) => {
     const newPendingFiles: PendingFile[] = []
@@ -84,7 +86,7 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
     Array.from(fileList).forEach((file) => {
       const id = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}`
       const fileSizeMB = file.size / (1024 * 1024)
-      
+
       // Check file size limits
       if (fileSizeMB > 50) {
         rejectedFiles.push({
@@ -94,11 +96,11 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
         })
         return
       }
-      
+
       if (fileSizeMB > 40) {
         console.warn(`Large file detected: ${file.name} (${fileSizeMB.toFixed(2)} MB). This may fail if you're on Contentful free tier.`)
       }
-      
+
       if (file.type.startsWith("image/")) {
         const preview = URL.createObjectURL(file)
         newPendingFiles.push({ file, preview, id, type: 'image' })
@@ -121,10 +123,20 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
         setShowOrientationModal(true)
       } else {
         // Solo videos, subir directamente
-        handleUploadAllFiles(newPendingFiles)
+        console.log('📤 Uploading videos to folderId:', folderId)
+        handleUploadAllFiles(newPendingFiles, folderId)
       }
     }
-  }, [])
+  }, [folderId, handleUploadAllFiles])
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault()
+    setIsDragOver(false)
+    dragCounter.current = 0
+    if (e.dataTransfer.files) {
+      processFiles(e.dataTransfer.files)
+    }
+  }, [processFiles])
 
   const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
@@ -139,14 +151,6 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
     }
     setPendingFiles(prev => prev.filter(f => f.id !== fileId))
   }, [pendingFiles])
-
-  const handleUploadAllFiles = useCallback(async (files: PendingFile[]) => {
-    // Enviar archivos con sus orientaciones específicas
-    for (const pendingFile of files) {
-      const orientation = pendingFile.orientation || 'vertical' // default para videos
-      await upload([pendingFile.file], folderId, orientation)
-    }
-  }, [folderId, upload])
 
   const handleOrientationConfirm = useCallback(() => {
     const currentFile = pendingFiles[currentImageIndex]
@@ -167,10 +171,11 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
       } else {
         // No hay más imágenes, proceder con el upload
         setShowOrientationModal(false)
-        handleUploadAllFiles(updatedFiles)
+        console.log('📤 Orientation confirmed, uploading to folderId:', folderId)
+        handleUploadAllFiles(updatedFiles, folderId)
       }
     }
-  }, [pendingFiles, currentImageIndex, selectedOrientation, handleUploadAllFiles])
+  }, [pendingFiles, currentImageIndex, selectedOrientation, folderId])
 
   const handleCancelUpload = useCallback(() => {
     pendingFiles.forEach(file => {
