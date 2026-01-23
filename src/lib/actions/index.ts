@@ -20,5 +20,6 @@ export {
   getFolderAction,
   getProjectsWithFirstImageAction,
   updateProjectOrderingAction,
-  deleteProjectFolder
+  deleteProjectFolder,
+  toggleProjectActiveStatusAction
 } from './folders'

@@ -38,7 +38,11 @@ export const uploadMediaFiles = async (
         const filename = `${mediaId}-${file.name}`
         
         const contentfulResult = await uploadToContentful(file, filename)
-        
+
+        if (!contentfulResult.url) {
+          throw new Error('Failed to get URL from Contentful upload')
+        }
+
         const mediaRecord = await createMediaRecord({
           id: mediaId,
           folderId,

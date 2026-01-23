@@ -12,6 +12,7 @@ import {
   updateFolder,
   updateFolderHero,
   updateProjectOrdering,
+  toggleFolderActiveStatus,
   deleteFolder
 } from '../../modules/database'
 import type {
@@ -237,6 +238,25 @@ export const updateProjectOrderingAction = async (
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Failed to update project ordering'
+    }
+  }
+}
+
+export const toggleProjectActiveStatusAction = async (
+  projectId: number,
+  isActive: boolean
+): Promise<{ success: boolean; data?: FolderRecord; error?: string }> => {
+  try {
+    const project = await toggleFolderActiveStatus(projectId, isActive)
+    if (project) {
+      return { success: true, data: project }
+    } else {
+      return { success: false, error: 'Project not found' }
+    }
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to toggle project active status'
     }
   }
 }

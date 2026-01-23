@@ -239,7 +239,7 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
   }, [updateLayout])
 
   const imageFiles = media.filter(m => m.media_url.match(/\.(jpg|jpeg|png|gif|webp)$/i))
-  const videoFiles = media.filter(m => m.media_url.match(/\.(mp4|webm|ogg|mov)$/i))
+  const videoFiles = media.filter(m => m.media_url.match(/\.(mp4|m4v|webm|ogg|mov)$/i))
 
   return (
     <div className="flex flex-col h-full">
@@ -328,9 +328,25 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
                       className="absolute inset-0 w-full h-full object-cover"
                     />
                   ) : (
-                    <div className="flex items-center justify-center w-full h-full bg-muted">
-                      <Video className="w-8 h-8 text-muted-foreground" />
-                    </div>
+                    <>
+                      <video
+                        src={file.media_url}
+                        className="absolute inset-0 w-full h-full object-cover"
+                        muted
+                        loop
+                        playsInline
+                        onMouseEnter={(e) => e.currentTarget.play()}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.pause()
+                          e.currentTarget.currentTime = 0
+                        }}
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-80 group-hover:opacity-0 transition-opacity">
+                        <div className="p-3 rounded-full bg-black/50 backdrop-blur-sm">
+                          <Video className="w-6 h-6 text-white" />
+                        </div>
+                      </div>
+                    </>
                   )}
 
                   <Badge variant="secondary" className="absolute top-2 right-2">
