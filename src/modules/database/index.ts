@@ -1,10 +1,11 @@
 export { sql, testConnection } from './connection'
 
-export { 
-  createMediaRecord, 
-  getMediaByFolder, 
-  updateMediaOrder, 
+export {
+  createMediaRecord,
+  getMediaByFolder,
+  updateMediaOrder,
   updateMediaLayout,
+  updateMediaVideoStartTime,
   deleteMediaRecord,
   getMediaWithFolder
 } from './media'

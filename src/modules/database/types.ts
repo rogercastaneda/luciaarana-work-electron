@@ -19,6 +19,7 @@ export type MediaRecord = {
   media_url: string
   order_index: number
   layout: string
+  video_start_time?: number  // Video start time in seconds, optional for backward compatibility
   created_at: Date
   updated_at: Date
 }
