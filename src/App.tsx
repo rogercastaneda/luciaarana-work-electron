@@ -5,7 +5,8 @@ import {
   getProjectsGroupedByCategoryAction,
   updateProjectRelatedProjects,
   getProjectsWithFirstImageAction,
-  updateProjectOrderingAction
+  updateProjectOrderingAction,
+  toggleProjectActiveStatusAction
 } from "@/lib/actions"
 import { MediaDropZone } from "@/components/media-drop-zone"
 import { Button } from "@/components/ui/button"
@@ -24,7 +25,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { FolderOpen, Plus, Users, Trash2, Edit2, ChevronDown, ChevronRight, ImageIcon } from "lucide-react"
+import { FolderOpen, Plus, Users, Trash2, Edit2, ChevronDown, ChevronRight, ImageIcon, Eye, EyeOff } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ThemeProvider } from "@/components/theme-provider"
 import { HeroImageUpload } from "@/components/hero-image-upload"
@@ -34,7 +35,7 @@ import { ProjectListing } from "@/components/project-listing"
 import type { ProjectWithFirstImage } from "@/modules/database/types"
 
 export default function App() {
-  const { categoriesWithProjects, loading, createProject, updateProject, updateProjectHero, deleteProject } = useFolders()
+  const { categoriesWithProjects, loading, createProject, updateProject, updateProjectHero, deleteProject, refresh } = useFolders()
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null)
   const [selectedFolderName, setSelectedFolderName] = useState<string>("")
   const [newProjectName, setNewProjectName] = useState("")
@@ -66,7 +67,8 @@ export default function App() {
   const handleFolderSelect = async (folderId: number, folderName: string) => {
     setSelectedFolderId(folderId)
     setSelectedFolderName(folderName)
-    
+    setViewMode('project')
+
     // Load project with related projects
     try {
       const [projectResult, groupedResult] = await Promise.all([
@@ -162,6 +164,15 @@ export default function App() {
         setSelectedFolderName("")
         setCurrentProjectWithRelated(null)
       }
+      return result.success
+    }
+    return false
+  }
+
+  const handleProjectToggleActive = async (id: string, isActive: boolean): Promise<boolean> => {
+    const projectId = Number(id)
+    if (projectId) {
+      const result = await toggleProjectActiveStatusAction(projectId, isActive)
       return result.success
     }
     return false
@@ -346,12 +357,15 @@ export default function App() {
                             folderId={project.id.toString()}
                             folderName={project.name}
                             heroImageUrl={project.hero_image_url}
+                            isActive={project.is_active}
                             onRename={handleProjectRename}
                             onUpdateHero={handleProjectHeroUpdate}
+                            onToggleActive={handleProjectToggleActive}
                             onDelete={handleProjectDelete}
                             canDelete={true}
                             canRename={true}
                             canEditHero={true}
+                            canToggleActive={true}
                           >
                             <Button
                               variant="ghost"
@@ -359,12 +373,16 @@ export default function App() {
                               className={cn(
                                 "w-full justify-start gap-2 h-8 px-2",
                                 "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                                selectedFolderId === project.id && "bg-sidebar-primary text-sidebar-primary-foreground"
+                                selectedFolderId === project.id && "bg-sidebar-primary text-sidebar-primary-foreground",
+                                !project.is_active && "opacity-50"
                               )}
                               onClick={() => handleFolderSelect(project.id, project.name)}
                             >
                               <FolderOpen className="h-4 w-4" />
                               <span className="text-sm">{project.name}</span>
+                              {!project.is_active && (
+                                <EyeOff className="h-3 w-3 ml-1 text-muted-foreground" />
+                              )}
                               {project.hero_image_url && (
                                 <div className="w-2 h-2 bg-blue-500 rounded-full ml-auto" title="Tiene imagen hero" />
                               )}
@@ -400,44 +418,74 @@ export default function App() {
                 </p>
               </div>
               
-              {selectedFolderId && selectedFolderName && (
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const currentProject = categoriesWithProjects
-                        .flatMap(cat => cat.projects)
-                        .find(project => project.id === selectedFolderId)
-                      setEditHeroImageUrl(currentProject?.hero_image_url || null)
-                      setIsHeroEditDialogOpen(true)
-                    }}
-                  >
-                    <ImageIcon className="h-4 w-4 mr-2" />
-                    Editar Hero
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setRenameProjectName(selectedFolderName)
-                      setIsRenameDialogOpen(true)
-                    }}
-                  >
-                    <Edit2 className="h-4 w-4 mr-2" />
-                    Renombrar Proyecto
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setIsDeleteDialogOpen(true)}
-                    className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
-                  >
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Eliminar Proyecto
-                  </Button>
-                </div>
-              )}
+              {selectedFolderId && selectedFolderName && (() => {
+                const currentProject = categoriesWithProjects
+                  .flatMap(cat => cat.projects)
+                  .find(project => project.id === selectedFolderId)
+
+                return (
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setEditHeroImageUrl(currentProject?.hero_image_url || null)
+                        setIsHeroEditDialogOpen(true)
+                      }}
+                    >
+                      <ImageIcon className="h-4 w-4 mr-2" />
+                      Editar Hero
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        if (currentProject && selectedFolderId) {
+                          const success = await handleProjectToggleActive(
+                            selectedFolderId.toString(),
+                            !currentProject.is_active
+                          )
+                          if (success) {
+                            await refresh()
+                          }
+                        }
+                      }}
+                    >
+                      {currentProject?.is_active ? (
+                        <>
+                          <EyeOff className="h-4 w-4 mr-2" />
+                          Deshabilitar
+                        </>
+                      ) : (
+                        <>
+                          <Eye className="h-4 w-4 mr-2" />
+                          Habilitar
+                        </>
+                      )}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setRenameProjectName(selectedFolderName)
+                        setIsRenameDialogOpen(true)
+                      }}
+                    >
+                      <Edit2 className="h-4 w-4 mr-2" />
+                      Renombrar
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsDeleteDialogOpen(true)}
+                      className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground"
+                    >
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Eliminar
+                    </Button>
+                  </div>
+                )
+              })()}
             </div>
           </div>
 

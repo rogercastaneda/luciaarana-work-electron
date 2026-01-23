@@ -12,12 +12,11 @@ import type {
 export const createFolder = async (params: CreateFolderParams): Promise<FolderRecord> => {
   const { name, slug, parentId, isParent = false, heroImageUrl = null } = params
 
-  // Get next ordering number for subfolders
   const nextOrdering = isParent ? 0 : await getNextOrdering(parentId)
 
   const result = await sql`
-    INSERT INTO folders (name, slug, parent_id, is_parent, hero_image_url, ordering, created_at, updated_at)
-    VALUES (${name}, ${slug}, ${parentId || null}, ${isParent}, ${heroImageUrl}, ${nextOrdering}, NOW(), NOW())
+    INSERT INTO folders (name, slug, parent_id, is_parent, is_active, hero_image_url, ordering, created_at, updated_at)
+    VALUES (${name}, ${slug}, ${parentId || null}, ${isParent}, true, ${heroImageUrl}, ${nextOrdering}, NOW(), NOW())
     RETURNING *
   `
 
@@ -68,6 +67,7 @@ export const getCategoriesWithProjects = async (): Promise<CategoryWithProjects[
             'slug', c.slug,
             'parent_id', c.parent_id,
             'is_parent', c.is_parent,
+            'is_active', c.is_active,
             'hero_image_url', c.hero_image_url,
             'related_project_1_id', c.related_project_1_id,
             'related_project_2_id', c.related_project_2_id,
@@ -196,24 +196,24 @@ export const updateFolderHero = async (params: UpdateFolderParams): Promise<Fold
 
 export const getFolderWithRelatedProjects = async (id: number): Promise<FolderWithRelatedProjects | null> => {
   const result = await sql`
-    SELECT 
+    SELECT
       f.*,
-      r1.id as related_1_id, r1.name as related_1_name, r1.slug as related_1_slug, 
+      r1.id as related_1_id, r1.name as related_1_name, r1.slug as related_1_slug,
       r1.hero_image_url as related_1_hero_image_url, r1.parent_id as related_1_parent_id,
-      r1.is_parent as related_1_is_parent, r1.created_at as related_1_created_at, 
-      r1.updated_at as related_1_updated_at,
+      r1.is_parent as related_1_is_parent, r1.is_active as related_1_is_active,
+      r1.created_at as related_1_created_at, r1.updated_at as related_1_updated_at,
       r2.id as related_2_id, r2.name as related_2_name, r2.slug as related_2_slug,
       r2.hero_image_url as related_2_hero_image_url, r2.parent_id as related_2_parent_id,
-      r2.is_parent as related_2_is_parent, r2.created_at as related_2_created_at,
-      r2.updated_at as related_2_updated_at
+      r2.is_parent as related_2_is_parent, r2.is_active as related_2_is_active,
+      r2.created_at as related_2_created_at, r2.updated_at as related_2_updated_at
     FROM folders f
     LEFT JOIN folders r1 ON f.related_project_1_id = r1.id
     LEFT JOIN folders r2 ON f.related_project_2_id = r2.id
     WHERE f.id = ${id}
   `
-  
+
   if (result.length === 0) return null
-  
+
   const row = result[0] as any
   const folder: FolderWithRelatedProjects = {
     id: row.id,
@@ -221,6 +221,7 @@ export const getFolderWithRelatedProjects = async (id: number): Promise<FolderWi
     slug: row.slug,
     parent_id: row.parent_id,
     is_parent: row.is_parent,
+    is_active: row.is_active,
     hero_image_url: row.hero_image_url,
     related_project_1_id: row.related_project_1_id,
     related_project_2_id: row.related_project_2_id,
@@ -233,6 +234,7 @@ export const getFolderWithRelatedProjects = async (id: number): Promise<FolderWi
       slug: row.related_1_slug,
       parent_id: row.related_1_parent_id,
       is_parent: row.related_1_is_parent,
+      is_active: row.related_1_is_active,
       hero_image_url: row.related_1_hero_image_url,
       related_project_1_id: null,
       related_project_2_id: null,
@@ -246,6 +248,7 @@ export const getFolderWithRelatedProjects = async (id: number): Promise<FolderWi
       slug: row.related_2_slug,
       parent_id: row.related_2_parent_id,
       is_parent: row.related_2_is_parent,
+      is_active: row.related_2_is_active,
       hero_image_url: row.related_2_hero_image_url,
       related_project_1_id: null,
       related_project_2_id: null,
@@ -254,7 +257,7 @@ export const getFolderWithRelatedProjects = async (id: number): Promise<FolderWi
       updated_at: row.related_2_updated_at,
     } : null,
   }
-  
+
   return folder
 }
 
@@ -280,6 +283,7 @@ export const getProjectsGroupedByCategory = async () => {
           'slug', c.slug,
           'parent_id', c.parent_id,
           'is_parent', c.is_parent,
+          'is_active', c.is_active,
           'hero_image_url', c.hero_image_url,
           'related_project_1_id', c.related_project_1_id,
           'related_project_2_id', c.related_project_2_id,
@@ -346,6 +350,17 @@ export const updateProjectOrdering = async (projectId: number, newOrdering: numb
     UPDATE folders
     SET ordering = ${newOrdering}, updated_at = NOW()
     WHERE id = ${projectId}
+    RETURNING *
+  `
+
+  return result.length > 0 ? (result[0] as FolderRecord) : null
+}
+
+export const toggleFolderActiveStatus = async (folderId: number, isActive: boolean): Promise<FolderRecord | null> => {
+  const result = await sql`
+    UPDATE folders
+    SET is_active = ${isActive}, updated_at = NOW()
+    WHERE id = ${folderId}
     RETURNING *
   `
 

@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Edit2, Trash2, ImageIcon } from "lucide-react"
+import { Edit2, Trash2, ImageIcon, Eye, EyeOff } from "lucide-react"
 import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } from "@/components/ui/context-menu"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
@@ -26,12 +26,15 @@ interface FolderContextMenuProps {
   folderId: string
   folderName: string
   heroImageUrl?: string | null
+  isActive?: boolean
   onRename: (id: string, newName: string) => boolean
   onUpdateHero?: (id: string, heroImageUrl: string | null) => Promise<boolean>
+  onToggleActive?: (id: string, isActive: boolean) => Promise<boolean>
   onDelete: (id: string) => Promise<boolean>
   canDelete?: boolean
   canRename?: boolean
   canEditHero?: boolean
+  canToggleActive?: boolean
 }
 
 export function FolderContextMenu({
@@ -39,12 +42,15 @@ export function FolderContextMenu({
   folderId,
   folderName,
   heroImageUrl,
+  isActive = true,
   onRename,
   onUpdateHero,
+  onToggleActive,
   onDelete,
   canDelete = true,
   canRename = true,
   canEditHero = false,
+  canToggleActive = true,
 }: FolderContextMenuProps) {
   const [isRenameOpen, setIsRenameOpen] = useState(false)
   const [isDeleteOpen, setIsDeleteOpen] = useState(false)
@@ -79,6 +85,12 @@ export function FolderContextMenu({
     }
   }
 
+  const handleToggleActive = async () => {
+    if (onToggleActive) {
+      await onToggleActive(folderId, !isActive)
+    }
+  }
+
   return (
     <>
       <ContextMenu>
@@ -104,6 +116,21 @@ export function FolderContextMenu({
             >
               <ImageIcon className="h-4 w-4 mr-2" />
               Editar Hero
+            </ContextMenuItem>
+          )}
+          {canToggleActive && (
+            <ContextMenuItem onClick={handleToggleActive}>
+              {isActive ? (
+                <>
+                  <EyeOff className="h-4 w-4 mr-2" />
+                  Marcar como Inactivo
+                </>
+              ) : (
+                <>
+                  <Eye className="h-4 w-4 mr-2" />
+                  Marcar como Activo
+                </>
+              )}
             </ContextMenuItem>
           )}
           {canDelete && (

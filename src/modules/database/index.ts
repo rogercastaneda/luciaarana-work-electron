@@ -23,7 +23,8 @@ export {
   updateFolder,
   updateFolderHero,
   updateProjectOrdering,
-  deleteFolder
+  deleteFolder,
+  toggleFolderActiveStatus
 } from './folders'
 
 export type {

@@ -4,6 +4,7 @@ export type FolderRecord = {
   slug: string
   parent_id: number | null
   is_parent: boolean
+  is_active: boolean
   hero_image_url: string | null
   related_project_1_id: number | null
   related_project_2_id: number | null
