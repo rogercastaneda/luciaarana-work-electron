@@ -34,6 +34,11 @@ This project was created using **Electron Forge with the Vite template** (`@elec
   - Parent categories (fixed, are containers)
   - Child projects (created within categories)
 - **Project Operations**: Create, rename, delete projects
+- **Active/Inactive Status**: Projects can be enabled or disabled
+  - Toggle button in top bar with Eye/EyeOff icons
+  - Context menu option for quick toggle
+  - Inactive projects display with reduced opacity and eye icon
+  - Inactive projects hidden from public web but accessible in desktop app
 - **Hero Images**: Optional hero/cover images per project stored in Contentful
 - **Related Projects**: Each project can link to up to 2 other related projects
 
@@ -54,8 +59,10 @@ This project was created using **Electron Forge with the Vite template** (`@elec
 ### Database Schema
 - **folders table**: Stores both categories (is_parent=true) and projects (is_parent=false)
   - `id`, `name`, `slug`, `parent_id`, `is_parent`
+  - `is_active` (boolean, default true) - Controls visibility on public web
   - `hero_image_url` (Contentful URL)
   - `related_project_1_id`, `related_project_2_id` (foreign keys)
+  - `ordering` (integer) - For custom project ordering within categories
   - `created_at`, `updated_at`
 - **media table**: References to Contentful files
   - `id`, `folder_id`, `contentful_asset_id`, `file_url`, `file_type`
@@ -67,7 +74,17 @@ This project was created using **Electron Forge with the Vite template** (`@elec
 - **RelatedProjectsSelector**: Interface for managing project relationships
 - **HeroImageUpload**: Specialized hero image upload component
 - **MediaDropZone**: Drag & drop media upload interface
-- **FolderContextMenu**: Right-click context menu for projects
+- **FolderContextMenu**: Right-click context menu for projects with operations:
+  - Rename project
+  - Edit hero image
+  - Toggle active/inactive status
+  - Delete project
+- **ProjectListing**: Category view with drag-and-drop project ordering
+- **Top Bar Actions**: Quick access buttons for selected project:
+  - "Editar Hero" - Edit hero image
+  - "Habilitar"/"Deshabilitar" - Toggle project visibility
+  - "Renombrar" - Rename project
+  - "Eliminar" - Delete project
 
 ## Development Commands
 **Electron Forge Commands:**
@@ -111,6 +128,26 @@ This project was created using **Electron Forge with the Vite template** (`@elec
 - **Type Safety**: Use proper TypeScript types for database records
 - **SQL Templates**: Use template literals with the Neon SQL client
 - **Transaction Safety**: Handle database errors gracefully
+
+### Key Actions (lib/actions/)
+- **folders.ts**:
+  - `getCategoriesWithProjectsAction()` - Get all categories with their projects
+  - `createProjectFolder()` - Create new project
+  - `updateProjectFolder()` - Rename project
+  - `updateProjectHeroImage()` - Update hero image URL
+  - `toggleProjectActiveStatusAction()` - Toggle is_active status
+  - `deleteProjectFolder()` - Delete project and associated media
+  - `getFolderWithRelatedProjectsAction()` - Get project with related projects
+  - `updateProjectRelatedProjects()` - Update related project links
+  - `updateProjectOrderingAction()` - Update project ordering
+- **upload.ts**:
+  - `uploadToContentful()` - Upload file to Contentful CMS
+  - `deleteFromContentful()` - Delete file from Contentful
+- **media.ts**:
+  - `getMediaByFolderId()` - Get all media for a project
+  - `createMediaRecord()` - Create media database record
+  - `updateMediaLayout()` - Update media layout type
+  - `deleteMediaRecord()` - Delete media and Contentful file
 
 ### Example:
 ```typescript
@@ -160,7 +197,8 @@ src/
 scripts/               # Database migrations and setup
 ├── neon-media-table.sql
 ├── add-hero-field-migration.sql
-└── add-related-projects-migration.sql
+├── add-related-projects-migration.sql
+└── add-active-status-migration.sql
 ```
 
 ## Important Notes
@@ -218,3 +256,62 @@ Electron Forge's packaging algorithm:
 3. Cannot follow symlinks (pnpm's default structure)
 
 The `node-linker=hoisted` setting creates a flat `node_modules` structure (like npm/yarn) that Electron Forge can properly traverse and bundle.
+
+## Typical Workflow
+
+### Creating and Managing a Project
+1. Click "Nuevo Proyecto" button in sidebar
+2. Select parent category from dropdown
+3. Enter project name
+4. Optionally upload a hero image
+5. Click "Crear" to create the project
+
+### Working with a Project
+1. Select project from sidebar (organized by category)
+2. Use top bar buttons or right-click context menu for operations:
+   - Upload media via drag & drop in main area
+   - Edit hero image
+   - Toggle active/inactive status
+   - Rename project
+   - Delete project (with confirmation)
+3. Manage related projects (up to 2 related projects per project)
+4. Reorder media items within the project
+
+### Category View
+1. Click on a category name in sidebar
+2. View all projects in that category with their first media thumbnail
+3. Drag and drop projects to reorder them
+4. Click on a project thumbnail to open it
+
+### Publishing Workflow
+1. Create project in desktop app (starts as active by default)
+2. Upload and organize all media
+3. Optionally disable project while working ("Deshabilitar")
+4. When ready to publish, enable project ("Habilitar")
+5. Project becomes visible on public web automatically
+
+## Active/Inactive Project Behavior
+
+### Desktop App (Electron)
+- **Full Access**: All projects (active and inactive) are always visible and accessible
+- **Visual Indicators**:
+  - Inactive projects shown with 50% opacity
+  - EyeOff icon displayed next to inactive project names
+  - Blue dot indicator for projects with hero images
+- **Toggle Controls**:
+  - Top bar button: "Habilitar" (Eye icon) / "Deshabilitar" (EyeOff icon)
+  - Right-click context menu: "Marcar como Activo" / "Marcar como Inactivo"
+- **Full Functionality**: Can upload media, edit, rename, delete inactive projects
+
+### Public Web (Next.js)
+- **Filtered Display**: Only active projects (is_active=true) are visible
+- **Categories**: Always visible regardless of is_active (categories use is_parent=true)
+- **Database Queries**: All queries filter for is_active=true at the database level
+- **SEO/URLs**: Inactive project URLs return 404 or redirect
+- **Media**: Media from inactive projects not displayed in galleries
+
+### Use Cases
+- **Work in Progress**: Disable projects while uploading/organizing media
+- **Seasonal Projects**: Hide projects temporarily without deleting
+- **Draft Mode**: Prepare projects fully before making them public
+- **Portfolio Curation**: Show only best/recent work to public while keeping archive
