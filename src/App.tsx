@@ -57,7 +57,13 @@ export default function App() {
 
   const handleCreateProject = async () => {
     if (newProjectName.trim() && selectedCategoryId) {
-      await createProject(newProjectName.trim(), selectedCategoryId, newProjectHeroImage)
+      const result = await createProject(newProjectName.trim(), selectedCategoryId, newProjectHeroImage)
+
+      if (result.success && result.data) {
+        // Auto-select the newly created project
+        await handleFolderSelect(result.data.id, result.data.name)
+      }
+
       setNewProjectName("")
       setNewProjectHeroImage(null)
       setIsCreateDialogOpen(false)

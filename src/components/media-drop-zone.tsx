@@ -4,13 +4,15 @@ import type React from "react"
 import { useState, useCallback, useRef } from "react"
 import { useUpload } from "@/hooks/use-upload"
 import { useMedia } from "@/hooks/use-media"
+import { updateMediaVideoStartTimeAction } from "@/lib/actions"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Upload, Video, Star, GripVertical, Loader2, X, Trash2, RotateCw, GalleryHorizontal, GalleryVertical, Grid2X2 } from "lucide-react"
+import { Upload, Video, Star, GripVertical, Loader2, X, Trash2, RotateCw, GalleryHorizontal, GalleryVertical, Grid2X2, Clock } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type PendingFile = {
@@ -45,6 +47,9 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
   const [selectedOrientation, setSelectedOrientation] = useState<'horizontal' | 'vertical' | 'double'>('vertical')
   const [draggedItem, setDraggedItem] = useState<string | null>(null)
   const [dragOverItem, setDragOverItem] = useState<string | null>(null)
+  const [isVideoTimeDialogOpen, setIsVideoTimeDialogOpen] = useState(false)
+  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null)
+  const [videoStartTime, setVideoStartTime] = useState<string>('00:00')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const dragCounter = useRef(0)
 
@@ -238,6 +243,58 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
     await updateLayout(mediaId, newLayout)
   }, [updateLayout])
 
+  const handleSaveVideoStartTime = useCallback(async () => {
+    if (!selectedVideoId) return
+
+    console.log('[MediaDropZone] Saving video start time:', {
+      selectedVideoId,
+      videoStartTime,
+      rawInput: videoStartTime
+    })
+
+    // Parse MM:SS format to seconds
+    const [minutes, seconds] = videoStartTime.split(':').map(Number)
+
+    console.log('[MediaDropZone] Parsed values:', {
+      minutes,
+      seconds,
+      isMinutesNaN: isNaN(minutes),
+      isSecondsNaN: isNaN(seconds)
+    })
+
+    if (isNaN(minutes) || isNaN(seconds)) {
+      alert('Formato inválido. Use MM:SS (ejemplo: 01:30)')
+      return
+    }
+
+    const totalSeconds = (minutes * 60) + seconds
+
+    console.log('[MediaDropZone] Calculated totalSeconds:', totalSeconds)
+
+    try {
+      console.log('[MediaDropZone] Calling updateMediaVideoStartTimeAction with:', {
+        mediaId: selectedVideoId,
+        startTime: totalSeconds
+      })
+
+      const result = await updateMediaVideoStartTimeAction(selectedVideoId, totalSeconds)
+
+      console.log('[MediaDropZone] Update result:', result)
+
+      if (result.success) {
+        setIsVideoTimeDialogOpen(false)
+        setSelectedVideoId(null)
+        setVideoStartTime('00:00')
+        refresh()
+      } else {
+        alert(`Error al guardar el tiempo de inicio: ${result.error}`)
+      }
+    } catch (error) {
+      console.error('Error saving video start time:', error)
+      alert('Error al guardar el tiempo de inicio')
+    }
+  }, [selectedVideoId, videoStartTime, refresh])
+
   const imageFiles = media.filter(m => m.media_url.match(/\.(jpg|jpeg|png|gif|webp)$/i))
   const videoFiles = media.filter(m => m.media_url.match(/\.(mp4|m4v|webm|ogg|mov)$/i))
 
@@ -373,6 +430,24 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
                         <GalleryHorizontal className="w-4 h-4 text-white" />
                       )}
                     </button>
+                    {/* Only show for video files */}
+                    {file.media_url.match(/\.(mp4|m4v|webm|ogg|mov)$/i) && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          const currentTime = file.video_start_time || 0
+                          const minutes = Math.floor(currentTime / 60)
+                          const seconds = currentTime % 60
+                          setVideoStartTime(`${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`)
+                          setSelectedVideoId(file.id)
+                          setIsVideoTimeDialogOpen(true)
+                        }}
+                        className="p-2 transition-colors rounded-md bg-purple-500/80 backdrop-blur-sm hover:bg-purple-600/80"
+                        title="Configurar tiempo de inicio"
+                      >
+                        <Clock className="w-4 h-4 text-white" />
+                      </button>
+                    )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
@@ -500,6 +575,39 @@ export function MediaDropZone({ folderId, layout = 'grid' }: MediaDropZoneProps)
               )}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Video Start Time Dialog */}
+      <Dialog open={isVideoTimeDialogOpen} onOpenChange={setIsVideoTimeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Configurar Tiempo de Inicio</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 pt-4">
+            <div>
+              <Label htmlFor="video-time">Tiempo de inicio (MM:SS)</Label>
+              <Input
+                id="video-time"
+                value={videoStartTime}
+                onChange={(e) => setVideoStartTime(e.target.value)}
+                placeholder="00:00"
+                pattern="[0-9]{2}:[0-9]{2}"
+                maxLength={5}
+              />
+              <p className="text-sm text-muted-foreground mt-1">
+                Formato: Minutos:Segundos (ejemplo: 01:30 para 1 minuto 30 segundos)
+              </p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsVideoTimeDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleSaveVideoStartTime}>
+                Guardar
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
