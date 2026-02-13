@@ -1,7 +1,8 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
 import started from 'electron-squirrel-startup';
+import { uploadToR2, deleteFromR2 } from './main/r2-service.js';
 
 // Load environment variables from .env file
 const loadEnvFile = () => {
@@ -77,6 +78,30 @@ app.whenReady().then(() => {
       createWindow();
     }
   });
+});
+
+// IPC Handlers
+ipcMain.handle('r2:upload', async (event, fileBuffer, filename, contentType) => {
+  try {
+    const result = await uploadToR2(fileBuffer, filename, contentType);
+    return { success: true, data: result };
+  } catch (error) {
+    console.error('IPC r2:upload error:', error);
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error'
+    };
+  }
+});
+
+ipcMain.handle('r2:delete', async (event, filename) => {
+  try {
+    const result = await deleteFromR2(filename);
+    return { success: result };
+  } catch (error) {
+    console.error('IPC r2:delete error:', error);
+    return { success: false };
+  }
 });
 
 // Quit when all windows are closed, except on macOS. There, it's common

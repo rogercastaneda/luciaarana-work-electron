@@ -49,6 +49,7 @@
     "vite": "7.3.1"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.989.0",
     "@hookform/resolvers": "3.10.0",
     "@neondatabase/serverless": "latest",
     "@radix-ui/react-accordion": "1.2.2",

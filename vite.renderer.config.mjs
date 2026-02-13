@@ -34,5 +34,10 @@ export default defineConfig({
     'import.meta.env.VITE_CONTENTFUL_SPACE_ID': JSON.stringify(env.VITE_CONTENTFUL_SPACE_ID),
     'import.meta.env.VITE_CONTENTFUL_ENVIRONMENT_ID': JSON.stringify(env.VITE_CONTENTFUL_ENVIRONMENT_ID),
     'import.meta.env.VITE_CONTENTFUL_ACCESS_TOKEN': JSON.stringify(env.VITE_CONTENTFUL_ACCESS_TOKEN),
+    'import.meta.env.VITE_R2_ACCESS_KEY_ID': JSON.stringify(env.VITE_R2_ACCESS_KEY_ID),
+    'import.meta.env.VITE_R2_SECRET_ACCESS_KEY': JSON.stringify(env.VITE_R2_SECRET_ACCESS_KEY),
+    'import.meta.env.VITE_R2_ENDPOINT': JSON.stringify(env.VITE_R2_ENDPOINT),
+    'import.meta.env.VITE_R2_BUCKET_NAME': JSON.stringify(env.VITE_R2_BUCKET_NAME),
+    'import.meta.env.VITE_R2_PUBLIC_URL': JSON.stringify(env.VITE_R2_PUBLIC_URL),
   },
 });
