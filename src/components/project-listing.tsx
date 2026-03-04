@@ -5,7 +5,7 @@ import { useState, useCallback } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { GripVertical, ArrowLeft, Image as ImageIcon } from "lucide-react"
+import { GripVertical, ArrowLeft, Image as ImageIcon, Video as VideoIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { ProjectWithFirstImage } from "@/modules/database/types"
 
@@ -99,11 +99,26 @@ export function ProjectListing({
           >
             <div className="relative aspect-square w-full overflow-hidden">
               {project.first_image_url ? (
-                <img
-                  src={project.first_image_url}
-                  alt={project.name}
-                  className="absolute inset-0 w-full h-full object-cover"
-                />
+                /\.(mp4|m4v|webm|ogg|mov)$/i.test(project.first_image_url) ? (
+                  <>
+                    <video
+                      src={`${project.first_image_url}#t=${project.first_video_start_time ?? 0}`}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      preload="metadata"
+                      muted
+                      playsInline
+                    />
+                    <div className="absolute bottom-2 left-2">
+                      <VideoIcon className="w-4 h-4 text-white drop-shadow" />
+                    </div>
+                  </>
+                ) : (
+                  <img
+                    src={project.first_image_url}
+                    alt={project.name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                )
               ) : (
                 <div className="flex items-center justify-center w-full h-full bg-muted">
                   <ImageIcon className="w-12 h-12 text-muted-foreground" />

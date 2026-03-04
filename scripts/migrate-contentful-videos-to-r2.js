@@ -54,7 +54,7 @@ const limit = limitArg ? parseInt(limitArg.split("=")[1], 10) : null;
 
 // Validate environment variables
 const requiredEnvVars = [
-  "DATABASE_URL",
+  "VITE_DATABASE_URL",
   "VITE_R2_ACCESS_KEY_ID",
   "VITE_R2_SECRET_ACCESS_KEY",
   "VITE_R2_ENDPOINT",
@@ -70,7 +70,7 @@ if (missingEnvVars.length > 0) {
 }
 
 // Initialize database and R2 clients
-const sql = neon(process.env.DATABASE_URL);
+const sql = neon(process.env.VITE_DATABASE_URL);
 const r2Client = new S3Client({
   region: "auto",
   endpoint: process.env.VITE_R2_ENDPOINT,
