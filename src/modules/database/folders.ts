@@ -328,14 +328,15 @@ export const getProjectsWithFirstImage = async (categoryId: number): Promise<Pro
       f.ordering,
       f.created_at,
       f.updated_at,
-      m.media_url as first_image_url
+      m.media_url as first_image_url,
+      m.video_start_time as first_video_start_time
     FROM folders f
     LEFT JOIN (
       SELECT DISTINCT ON (folder_id)
         folder_id,
-        media_url
+        media_url,
+        video_start_time
       FROM media
-      WHERE media_url ~* '\\.(jpg|jpeg|png|gif|webp)$'
       ORDER BY folder_id, order_index ASC
     ) m ON f.id = m.folder_id
     WHERE f.parent_id = ${categoryId} AND f.is_parent = false

@@ -79,4 +79,5 @@ export type FolderWithRelatedProjects = FolderRecord & {
 
 export type ProjectWithFirstImage = FolderRecord & {
   first_image_url?: string | null
+  first_video_start_time?: number | null
 }

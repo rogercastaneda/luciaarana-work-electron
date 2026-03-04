@@ -2,8 +2,8 @@
 -- This adds optional related project references for project recommendations
 
 -- Add related project fields to folders table (ya ejecutado)
--- ALTER TABLE folders ADD COLUMN IF NOT EXISTS related_project_1_id INTEGER NULL;
--- ALTER TABLE folders ADD COLUMN IF NOT EXISTS related_project_2_id INTEGER NULL;
+ALTER TABLE folders ADD COLUMN IF NOT EXISTS related_project_1_id INTEGER NULL;
+ALTER TABLE folders ADD COLUMN IF NOT EXISTS related_project_2_id INTEGER NULL;
 
 -- Add foreign key constraints to ensure related projects exist and are valid projects (not parent categories)
 ALTER TABLE folders ADD CONSTRAINT fk_related_project_1
