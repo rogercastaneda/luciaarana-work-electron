@@ -14,7 +14,8 @@
     "dev": "pnpm run build-vite && pnpm start",
     "dev:vite": "vite --config vite.renderer.config.mjs",
     "build": "pnpm run package",
-    "make-installers": "pnpm run build-vite && pnpm run make"
+    "make-installers": "pnpm run build-vite && pnpm run make",
+    "make-signed": "set -a && source .env && set +a && pnpm run make"
   },
   "keywords": [],
   "author": {

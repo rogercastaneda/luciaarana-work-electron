@@ -10,7 +10,12 @@ const env = {};
 envContent.split('\n').forEach(line => {
   const [key, ...valueParts] = line.split('=');
   if (key && !key.startsWith('#')) {
-    env[key.trim()] = valueParts.join('=').trim();
+    let value = valueParts.join('=').trim();
+    if ((value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))) {
+      value = value.slice(1, -1);
+    }
+    env[key.trim()] = value;
   }
 });
 

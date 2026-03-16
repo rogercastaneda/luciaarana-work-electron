@@ -9,8 +9,19 @@ module.exports = {
     appBundleId: 'com.luciaarana.workmanagement',
     appCategoryType: 'public.app-category.productivity',
     // icon: './assets/icon', // Will look for icon.icns on macOS (commented until we have an icon)
-    osxSign: false, // Set to true if you have a developer certificate
-    osxNotarize: false, // Set to true for distribution outside App Store
+    osxSign: {
+      identity: 'Developer ID Application: Roger Castaneda (Z579L5VDW5)',
+      entitlements: './entitlements.plist',
+      'entitlements-inherit': './entitlements.plist',
+      'hardened-runtime': true,
+      'signature-flags': 'library',
+    },
+    osxNotarize: {
+      tool: 'notarytool',
+      appleId: process.env.APPLE_ID,
+      appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
+      teamId: process.env.APPLE_TEAM_ID,
+    },
   },
   rebuildConfig: {},
   makers: [
